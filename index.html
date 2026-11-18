@@ -45,6 +45,7 @@ button{background:var(--ac);color:#062925;font-weight:700;border:0;cursor:pointe
  <div><label class="mu">Crédits par code</label><input id="cc" type="number" inputmode="numeric" min="1" value="20"></div></div>
  <button id="cg">Créer les codes</button>
  <div class="msg" id="cm"></div><div id="cl"></div>
+ <h2>Vérifier un code</h2><div class="two" style="grid-template-columns:2fr 1fr"><input id="vk" placeholder="YIRI-XXXX-XXXX" autocapitalize="characters" autocomplete="off"><button class="sec" id="vb" style="margin:0">Vérifier</button></div><div class="msg" id="vm"></div>
  <h2>Codes enregistrés</h2><div id="cs" class="mu">…</div><button class="sec hid" id="ca" style="margin-top:8px">Copier tous les codes</button></div>
 
 </div>
@@ -151,9 +152,10 @@ function cp(t,b){var d=function(){b.textContent="Copié ✓";setTimeout(function
 async function codes(){
  var r=await sb.rpc("admin_ia_codes");
  if(r.error){$("cs").innerHTML='<p class="mu">Liste non disponible : '+esc(r.error.message)+'</p>';return}
- var a=r.data||[],u=a.filter(function(x){return !x.used_at}),us=a.filter(function(x){return x.used_at});
+ var a=r.data||[];CODELIST=a;var u=a.filter(function(x){return !x.used_at}),us=a.filter(function(x){return x.used_at});
  function row(x,used){return '<div class="cd"><label style="display:flex;gap:8px;align-items:center;flex:1"><input type="checkbox" class="cx" data-c="'+esc(x.code)+'"><span>'+esc(x.code)+' · '+x.credits+' cr.'+(used?' · utilisé le '+esc(new Date(x.used_at).toLocaleString('fr-FR')):'')+'</span></label>'+(used?'':'<button class="sec" data-l="Copier" data-c="'+esc(x.code)+'">Copier</button>')+'</div>'}
- $("cs").innerHTML='<p class="mu">'+u.length+' code(s) disponible(s) · '+us.length+' déjà utilisé(s)</p>'+(u.length?u.map(function(x){return row(x,0)}).join(""):'<p class="mu">Aucun code disponible.</p>')+(us.length?'<h3 style="margin:14px 0 6px;font-size:14px">Codes déjà utilisés</h3>'+us.map(function(x){return row(x,1)}).join(""):"")+(a.length?'<button class="sec" id="cdel" style="margin-top:12px;width:100%">Supprimer les codes cochés</button><p class="mu" id="cdm"></p>':"");
+ var nx=u.slice().sort(function(a,b){return String(a.created||"").localeCompare(String(b.created||""))})[0];
+ $("cs").innerHTML=(nx?'<div class="cd" style="border-color:var(--ac);flex-wrap:wrap"><span style="flex:1"><span class="mu" style="display:block;font:600 12px system-ui">Prochain code à vendre</span><b style="font-size:20px">'+esc(nx.code)+'</b> · '+nx.credits+' cr.</span><button data-l="Copier" data-c="'+esc(nx.code)+'">Copier</button></div>':'')+'<p class="mu">'+u.length+' code(s) disponible(s) · '+us.length+' déjà utilisé(s)</p>'+(u.length?u.map(function(x){return row(x,0)}).join(""):'<p class="mu">Aucun code disponible.</p>')+(us.length?'<h3 style="margin:14px 0 6px;font-size:14px">Codes déjà utilisés</h3>'+us.map(function(x){return row(x,1)}).join(""):"")+(a.length?'<button class="sec" id="cdel" style="margin-top:12px;width:100%">Supprimer les codes cochés</button><p class="mu" id="cdm"></p>':"");
  Array.prototype.forEach.call($("cs").querySelectorAll("button[data-c]"),function(b){b.onclick=function(){cp(b.dataset.c,b)}});
  var bd=$("cdel");if(bd){var arm=0,tm;bd.onclick=async function(){
   var ch=Array.prototype.map.call($("cs").querySelectorAll("input.cx:checked"),function(x){return x.dataset.c});
@@ -163,7 +165,13 @@ async function codes(){
   if(q.error){$("cdm").textContent="Erreur : "+q.error.message;bd.textContent="Supprimer les codes cochés";return}
   await codes();$("cdm").textContent=(q.data||0)+" code(s) supprimé(s).";}}
 }
-var CODES=[];
+var CODES=[],CODELIST=[];
+$("vb").onclick=function(){var q=$("vk").value.trim().toUpperCase().replace(/\s+/g,"");var m=$("vm");if(!q){m.className="msg";m.textContent="Tape un code.";return}
+ var x=CODELIST.filter(function(c){return String(c.code).toUpperCase()===q})[0];
+ if(!x){m.className="msg";m.textContent="Introuvable dans les 100 derniers codes. Il est peut-être faux ou très ancien.";return}
+ if(x.used_at){m.className="msg";m.textContent="❌ Déjà utilisé le "+new Date(x.used_at).toLocaleString("fr-FR")+" ("+x.credits+" cr.). Il ne marche plus.";return}
+ m.className="ok";m.textContent="✅ Valide : "+x.credits+" crédits, jamais utilisé."};
+$("vk").addEventListener("keydown",function(e){if(e.key=="Enter")$("vb").click()});
 $("cg").onclick=async function(){
  var n=parseInt($("cn").value,10),c=parseInt($("cc").value,10);
  if(!(n>=1&&n<=200)||!(c>=1&&c<=100000)){$("cm").className="msg";$("cm").textContent="Nombre : 1 à 200. Crédits : 1 à 100000.";return}
