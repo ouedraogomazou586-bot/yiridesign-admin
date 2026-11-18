@@ -153,7 +153,7 @@ async function codes(){
  var r=await sb.rpc("admin_ia_codes");
  if(r.error){$("cs").innerHTML='<p class="mu">Liste non disponible : '+esc(r.error.message)+'</p>';return}
  var a=r.data||[];CODELIST=a;var u=a.filter(function(x){return !x.used_at}),us=a.filter(function(x){return x.used_at});
- function row(x,used){return '<div class="cd"><label style="display:flex;gap:8px;align-items:center;flex:1"><input type="checkbox" class="cx" data-c="'+esc(x.code)+'"><span>'+esc(x.code)+' · '+x.credits+' cr.'+(used?' · utilisé le '+esc(new Date(x.used_at).toLocaleString('fr-FR')):'')+'</span></label>'+(used?'':'<button class="sec" data-l="Copier" data-c="'+esc(x.code)+'">Copier</button>')+'</div>'}
+ function row(x,used){return '<div class="cd"><label style="display:flex;gap:8px;align-items:center;flex:1"><input type="checkbox" class="cx" data-c="'+esc(x.code)+'"><span style="color:'+(used?'#f87171':'#4ade80')+'"><b style="font-size:18px">'+(used?'✖':'✔')+'</b> '+esc(x.code)+' · '+x.credits+' cr.'+(used?' · utilisé le '+esc(new Date(x.used_at).toLocaleString('fr-FR')):'')+'</span></label>'+(used?'':'<button class="sec" data-l="Copier" data-c="'+esc(x.code)+'">Copier</button>')+'</div>'}
  var nx=u.slice().sort(function(a,b){return String(a.created||"").localeCompare(String(b.created||""))})[0];
  $("cs").innerHTML=(nx?'<div class="cd" style="border-color:var(--ac);flex-wrap:wrap"><span style="flex:1"><span class="mu" style="display:block;font:600 12px system-ui">Prochain code à vendre</span><b style="font-size:20px">'+esc(nx.code)+'</b> · '+nx.credits+' cr.</span><button data-l="Copier" data-c="'+esc(nx.code)+'">Copier</button></div>':'')+'<p class="mu">'+u.length+' code(s) disponible(s) · '+us.length+' déjà utilisé(s)</p>'+(u.length?u.map(function(x){return row(x,0)}).join(""):'<p class="mu">Aucun code disponible.</p>')+(us.length?'<h3 style="margin:14px 0 6px;font-size:14px">Codes déjà utilisés</h3>'+us.map(function(x){return row(x,1)}).join(""):"")+(a.length?'<button class="sec" id="cdel" style="margin-top:12px;width:100%">Supprimer les codes cochés</button><p class="mu" id="cdm"></p>':"");
  Array.prototype.forEach.call($("cs").querySelectorAll("button[data-c]"),function(b){b.onclick=function(){cp(b.dataset.c,b)}});
@@ -164,6 +164,14 @@ async function codes(){
   clearTimeout(tm);bd.disabled=true;var q=await sb.rpc("admin_ia_del",{p_codes:ch});bd.disabled=false;arm=0;
   if(q.error){$("cdm").textContent="Erreur : "+q.error.message;bd.textContent="Supprimer les codes cochés";return}
   await codes();$("cdm").textContent=(q.data||0)+" code(s) supprimé(s).";}}
+ Array.prototype.forEach.call($("cs").querySelectorAll(".cd"),function(row){
+  var cb=row.querySelector("input.cx");if(!cb)return;var code=cb.dataset.c,sx=0,sy=0,dx=0,on=0,id=null;
+  row.style.touchAction="pan-y";
+  row.addEventListener("pointerdown",function(e){if(e.target.closest("button,input"))return;sx=e.clientX;sy=e.clientY;dx=0;on=1;id=e.pointerId});
+  row.addEventListener("pointermove",function(e){if(!on)return;var mx=e.clientX-sx,my=e.clientY-sy;if(!dx&&(Math.abs(my)>Math.abs(mx)||Math.abs(mx)<8)&&Math.abs(my)>10){on=0;return}if(Math.abs(mx)>=8){dx=mx;try{row.setPointerCapture(id)}catch(x){}row.style.transition="none";row.style.transform="translateX("+dx+"px)";row.style.opacity=String(Math.max(.35,1-Math.abs(dx)/260))}});
+  function end(){if(!on)return;on=0;row.style.transition="transform .2s,opacity .2s";row.style.transform="";row.style.opacity="";if(Math.abs(dx)>90){var bar=document.createElement("div");bar.className="cd";bar.style.cssText="border-color:var(--er);flex-wrap:wrap";bar.innerHTML='<span style="flex:1">Supprimer <b>'+esc(code)+'</b> ?</span><button class="sec" data-y="1">Oui</button><button class="sec" data-n="1">Non</button>';row.parentNode.insertBefore(bar,row.nextSibling);bar.querySelector("[data-n]").onclick=function(){bar.remove()};bar.querySelector("[data-y]").onclick=async function(){this.disabled=true;var q=await sb.rpc("admin_ia_del",{p_codes:[code]});if(q.error){bar.textContent="Erreur : "+q.error.message;return}await codes();var m=$("cdm");if(m)m.textContent="Code supprimé."}}dx=0}
+  row.addEventListener("pointerup",end);row.addEventListener("pointercancel",end);
+ });
 }
 var CODES=[],CODELIST=[];
 $("vb").onclick=function(){var q=$("vk").value.trim().toUpperCase().replace(/\s+/g,"");var m=$("vm");if(!q){m.className="msg";m.textContent="Tape un code.";return}
