@@ -72,7 +72,7 @@ function flag(c){if(!c||c==="??")return "🌐";try{return String.fromCodePoint.a
 function cname(c){if(!c||c==="??")return "Inconnu";try{return new Intl.DisplayNames(["fr"],{type:"region"}).of(c)||c}catch(e){return c}}
 function paysBlock(pc){if(!pc)return '<p class="mu">Pays indisponibles : exécute le fichier pays.sql dans Supabase.</p>';if(!pc.length)return '<p class="mu">Aucun utilisateur.</p>';var rows=pc.map(function(x){return {pays:flag(x.pays)+" "+cname(x.pays)+" ("+x.actifs_30j+" actifs)",n:x.n}});var inc=pc.filter(function(x){return x.pays==="??"}).reduce(function(t,x){return t+x.n},0);return bars(rows,"pays","n")+(inc?'<p class="mu">« Inconnu » : appareils dont le pays n\'est pas encore connu ; il apparaît à leur prochaine ouverture.</p>':'')}
 var LIM_MO=500; /* limite de la base : 500 pour l'offre gratuite ; mets 8000 après le passage à l'offre Pro */
-var FLAGS=[["detourage_en_ligne","Détourage en ligne (photo d'identité)"],["ocr","Extraire le texte (scanner)"],["scanner_cv","Détection renforcée du scanner"]];
+var FLAGS=[["detourage_en_ligne","Détourage en ligne (photo d'identité)"],["ocr","Extraire le texte (scanner)"],["scanner_cv","Détection renforcée du scanner"],["voix_longue","Voix longue : plusieurs parties, 1 crédit par partie (éteint par défaut)",1]];
 function alertsBlock(al){
  if(!al)return '<h2>Alertes</h2><p class="mu">Alertes indisponibles : exécute le fichier controle.sql dans Supabase.</p>';
  var L=[];
@@ -88,7 +88,7 @@ function alertsBlock(al){
 function controlBlock(al){
  if(!al)return "";
  var f=al.flags||{},m=al.message||{},h='<h2>Contrôle à distance</h2><p class="mu">Coupe une fonction qui pose problème : l\'application la désactive au prochain signal, sans nouvelle version.</p>';
- FLAGS.forEach(function(x){h+='<label class="chk" style="display:flex;gap:12px;align-items:center;justify-content:flex-start;margin:10px 0;text-align:left"><input type="checkbox" data-flag="'+x[0]+'"'+(f[x[0]]===false?'':' checked')+'> '+esc(x[1])+'</label>';});
+ FLAGS.forEach(function(x){h+='<label class="chk" style="display:flex;gap:12px;align-items:center;justify-content:flex-start;margin:10px 0;text-align:left"><input type="checkbox" data-flag="'+x[0]+'"'+(x[2]?(f[x[0]]===true?' checked':''):(f[x[0]]===false?'':' checked'))+'> '+esc(x[1])+'</label>';});
  h+='<button id="fsave">Enregistrer les interrupteurs</button><h2>Message aux utilisateurs</h2><p class="mu">Affiché en haut de l\'accueil, avec une croix pour le fermer. Écris-le dans la langue de tes utilisateurs.</p><textarea id="mtxt" rows="3" maxlength="300" style="width:100%" placeholder="Ex. Nouvelle version disponible : mets à jour l\'application.">'+esc(m.texte||"")+'</textarea><label class="chk" style="display:flex;gap:12px;align-items:center;justify-content:flex-start;margin:10px 0;text-align:left"><input type="checkbox" id="mon"'+(m.actif?' checked':'')+'> Afficher ce message</label><button id="msave">Enregistrer le message</button>';
  return h;
 }
