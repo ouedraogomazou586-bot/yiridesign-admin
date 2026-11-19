@@ -39,7 +39,7 @@ button{background:var(--ac);color:#062925;font-weight:700;border:0;cursor:pointe
  <div class="tabs2"><button class="sec on" id="t1">📊 Bord</button><button class="sec" id="t3">👥 Utilisateurs</button><button class="sec" id="t2">🎟️ Codes</button><button class="sec" id="t4">💰 Prix</button></div>
  <div id="body"><p class="mu">Chargement…</p></div>
 <div id="us" class="hid"></div>
-<div id="pr" class="hid"><div id="pk"></div><div id="vsx"></div></div>
+<div id="pr" class="hid"><div id="svp"></div><div id="pk"></div><div id="vsx"></div></div>
 <div id="cr" class="hid"><div id="stk"></div><h2>Codes de recharge</h2>
  <p class="mu">Crée des codes à vendre ou offrir au client. Chaque code donne des crédits IA.</p>
  <div class="two"><div><label class="mu">Nombre de codes</label><input id="cn" type="number" inputmode="numeric" min="1" max="200" value="1"></div>
@@ -182,6 +182,26 @@ async function vsmp(){
   }
   var keep=L.textContent;await vsmp();if($("vsl"))$("vsl").textContent=keep;};
 }
+var SVK=[["text","Texte automatique (CV, lettre, affiches…)",1],["voix","Voix off",2],["fond","Fond / décor par IA",0],["ocr","Extraire le texte (scanner)",0],["bg","Détourage en ligne",0]],SVC=null;
+async function svcPrix(){
+ var b=$("svp");if(!b)return;
+ var r=await sb.rpc("admin_ia_get");
+ if(r.error||!r.data){b.innerHTML='<h2>Prix par service</h2><p class="mu">Non disponible : '+esc(r.error?r.error.message:"vide")+'</p>';return}
+ SVC=r.data;var px=SVC.prix||{},lim=SVC.limite||{};
+ var h='<h2>Prix par service (en crédits)</h2><p class="mu">Combien de crédits chaque usage coûte au client. 0 = gratuit pour ce service. Le changement s\'applique à la prochaine ouverture de l\'application du client. Les 2 textes offerts par téléphone ne changent pas.</p>';
+ SVK.forEach(function(k){var v=px[k[0]];h+='<div style="margin:8px 0"><label class="mu">'+esc(k[1])+'</label><div class="two" style="align-items:center"><input class="svi" data-k="'+k[0]+'" type="number" inputmode="numeric" min="0" max="50" value="'+(v==null?"":v)+'" placeholder="'+k[2]+'"><div class="mu" data-sf="'+k[0]+'"></div></div></div>'});
+ h+='<button id="svs">Enregistrer les prix des services</button><p class="mu" id="svm"></p><p class="mu">Conseil de départ : texte 1 crédit, voix 2 crédits. Vérifie ta facture Google avant de changer les autres.</p>';
+ b.innerHTML=h;
+ function ppc(){var m=0;(PK||[]).forEach(function(x){if(x.credits>0&&x.montant>0){var c=x.montant/x.credits;if(!m||c<m)m=c}});return m}
+ function upd(){var pc=ppc();Array.prototype.forEach.call(b.querySelectorAll(".svi"),function(e){var v=+e.value,f=b.querySelector('[data-sf="'+e.dataset.k+'"]');f.textContent=(e.value!==""&&pc)?("≈ "+Math.round(v*pc)+" F pour le client (au prix du plus gros pack : "+Math.round(pc*10)/10+" F/crédit)"):""});}
+ Array.prototype.forEach.call(b.querySelectorAll(".svi"),function(e){e.oninput=upd});upd();
+ $("svs").onclick=async function(){
+  var np=Object.assign({},px),ok=true;
+  Array.prototype.forEach.call(b.querySelectorAll(".svi"),function(e){if(e.value===""){return}var v=+e.value;if(!Number.isInteger(v)||v<0||v>50){ok=false;return}np[e.dataset.k]=v});
+  if(!ok){$("svm").textContent="Vérifie : nombres entiers de 0 à 50.";return}
+  $("svm").textContent="…";var q=await sb.rpc("admin_ia_set",{p_actif:SVC.actif===true,p_prix:np,p_limite:lim});
+  $("svm").textContent=q.error?("Erreur : "+q.error.message):"Enregistré ✓ Les clients verront ces prix à leur prochaine ouverture.";if(!q.error){SVC=q.data||SVC;px=np}};
+}
 var PK=[];
 async function packs(){
  var b=$("pk");if(!b)return;
@@ -269,7 +289,7 @@ $("cg").onclick=async function(){
 $("ca").onclick=function(){cp(CODES.join("\n"),$("ca"))};
 boot();codes();
 
-function tab(n){$("body").classList.toggle("hid",n!=1);$("us").classList.toggle("hid",n!=3);$("cr").classList.toggle("hid",n!=2);$("pr").classList.toggle("hid",n!=4);$("t1").classList.toggle("on",n==1);$("t3").classList.toggle("on",n==3);$("t2").classList.toggle("on",n==2);$("t4").classList.toggle("on",n==4);if(n==2)codes();if(n==4){packs();vsmp();}window.scrollTo(0,0)}
+function tab(n){$("body").classList.toggle("hid",n!=1);$("us").classList.toggle("hid",n!=3);$("cr").classList.toggle("hid",n!=2);$("pr").classList.toggle("hid",n!=4);$("t1").classList.toggle("on",n==1);$("t3").classList.toggle("on",n==3);$("t2").classList.toggle("on",n==2);$("t4").classList.toggle("on",n==4);if(n==2)codes();if(n==4){svcPrix();packs();vsmp();}window.scrollTo(0,0)}
 $("t1").onclick=function(){tab(1)};$("t3").onclick=function(){tab(3)};$("t2").onclick=function(){tab(2)};$("t4").onclick=function(){tab(4)};tab(1);
 try{if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js");}catch(e){}
 </script></body></html>
