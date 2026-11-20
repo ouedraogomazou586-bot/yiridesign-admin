@@ -188,13 +188,19 @@ async function svcPrix(){
  var r=await sb.rpc("admin_ia_get");
  if(r.error||!r.data){b.innerHTML='<h2>Prix par service</h2><p class="mu">Non disponible : '+esc(r.error?r.error.message:"vide")+'</p>';return}
  SVC=r.data;var px=SVC.prix||{},lim=SVC.limite||{};
- var h='<h2>Interrupteur général de l\'IA</h2><label class="chk" style="display:flex;gap:12px;align-items:center;justify-content:flex-start;margin:6px 0;text-align:left"><input type="checkbox" class="swt" id="iaon"'+(SVC.actif===true?' checked':'')+'> IA ouverte aux utilisateurs</label><p class="mu">Éteint = aucun service IA (prix, boutons ✨) n\'apparaît chez les utilisateurs, même si les prix sont réglés. Allume seulement quand la facturation Google est active et que tu as vu une vraie facture.</p><hr><h2>Prix par service (en crédits)</h2><p class="mu">Combien de crédits chaque usage coûte au client. Interrupteur vert = service ouvert aux clients. Éteint = service fermé (le prix est gardé pour plus tard). Le changement s\'applique à la prochaine ouverture de l\'application du client. Les 2 textes offerts par téléphone ne changent pas.</p>';
- SVK.forEach(function(k){var v=px[k[0]],on=v>0,sh=on?v:(px["m_"+k[0]]||"");h+='<div style="margin:12px 0"><label class="chk" style="display:flex;gap:12px;align-items:center;justify-content:flex-start;margin:0 0 4px;text-align:left"><input type="checkbox" class="svo swt" data-k="'+k[0]+'"'+(on?' checked':'')+'> <b>'+esc(k[1])+'</b></label><div class="two" style="align-items:center"><input class="svi" data-k="'+k[0]+'" type="number" inputmode="numeric" min="0" max="50" value="'+(sh===""?"":sh)+'" placeholder="'+(k[2]||"")+'"><div class="mu" data-sf="'+k[0]+'"></div></div></div>'});
- h+='<button id="svs">Enregistrer les prix des services</button><p class="mu" id="svm"></p><p class="mu">Conseil de départ : texte 1 crédit, voix 2 crédits. Vérifie ta facture Google avant de changer les autres.</p>';
+ var h='<h2>Interrupteur général de l\'IA</h2><label class="chk" style="display:flex;gap:12px;align-items:center;justify-content:flex-start;margin:6px 0;text-align:left"><input type="checkbox" class="swt" id="iaon"'+(SVC.actif===true?' checked':'')+'> IA ouverte aux utilisateurs</label><p class="mu">Éteint = aucun service IA (prix, boutons ✨) n\'apparaît chez les utilisateurs, même si les prix sont réglés. Allume seulement quand la facturation Google est active et que tu as vu une vraie facture.</p><hr><h2>Crédits et prix par service</h2><p class="mu">Combien de crédits chaque usage coûte au client. Interrupteur vert = service ouvert aux clients. Éteint = service fermé (le prix est gardé pour plus tard). Le changement s\'applique à la prochaine ouverture de l\'application du client. Les 2 textes offerts par téléphone ne changent pas.</p>';
+ SVK.forEach(function(k){var v=px[k[0]],on=v>0,sh=on?v:(px["m_"+k[0]]||"");h+='<div style="margin:12px 0;padding:10px;border:1px solid #ddd;border-radius:12px"><label class="chk" style="display:flex;gap:12px;align-items:center;justify-content:flex-start;margin:0 0 6px;text-align:left"><input type="checkbox" class="svo swt" data-k="'+k[0]+'"'+(on?' checked':'')+'> <b>'+esc(k[1])+'</b></label><div class="two" style="align-items:end"><div><label class="mu">Crédits</label><input class="svi" data-k="'+k[0]+'" type="number" inputmode="numeric" min="0" max="50" value="'+(sh===""?"":sh)+'" placeholder="'+(k[2]||"")+'"></div><div><label class="mu">Prix pour le client (FCFA)</label><input class="svf" data-k="'+k[0]+'" type="number" inputmode="numeric" min="0" placeholder="—"></div></div><div class="mu" data-sf="'+k[0]+'" style="margin-top:4px"></div></div>'});
+ h+='<p class="mu" id="svpc"></p><button id="svs">Enregistrer les prix des services</button><p class="mu" id="svm"></p><p class="mu">Conseil de départ : texte 1 crédit, voix 2 crédits. Vérifie ta facture Google avant de changer les autres.</p>';
  b.innerHTML=h;
  function ppc(){var m=0;(PK||[]).forEach(function(x){if(x.credits>0&&x.montant>0){var c=x.montant/x.credits;if(!m||c<m)m=c}});return m}
- function upd(){var pc=ppc();Array.prototype.forEach.call(b.querySelectorAll(".svi"),function(e){var v=+e.value,f=b.querySelector('[data-sf="'+e.dataset.k+'"]');f.textContent=(e.value!==""&&pc)?("≈ "+Math.round(v*pc)+" F pour le client (au prix du plus gros pack : "+Math.round(pc*10)/10+" F/crédit)"):""});}
- Array.prototype.forEach.call(b.querySelectorAll(".svi"),function(e){e.oninput=upd});upd();
+ function q(c,k){return b.querySelector('.'+c+'[data-k="'+k+'"]')}
+ function fromC(k){var pc=ppc(),e=q("svi",k),f=q("svf",k),t=b.querySelector('[data-sf="'+k+'"]');if(e.value===""||!pc){f.value="";t.textContent=pc?"":"Prix en FCFA : règle d'abord les packs.";return}f.value=Math.round(+e.value*pc);t.textContent=""}
+ function fromF(k){var pc=ppc(),e=q("svi",k),f=q("svf",k),t=b.querySelector('[data-sf="'+k+'"]');if(!pc)return;if(f.value===""){e.value="";t.textContent="";return}var c=Math.max(1,Math.round(+f.value/pc));e.value=c;var r=Math.round(c*pc);t.textContent=(r!==+f.value)?("Arrondi à "+c+" crédit(s) = "+r+" F"):""}
+ function upd(){var pc=ppc();$("svpc").textContent=pc?("1 crédit = "+Math.round(pc*10)/10+" F (prix du pack le plus avantageux). Tu peux remplir les crédits ou le prix en FCFA : l'autre se calcule tout seul."):"";SVK.forEach(function(k){fromC(k[0])})}
+ window.svUpd=upd;
+ Array.prototype.forEach.call(b.querySelectorAll(".svi"),function(e){e.oninput=function(){fromC(e.dataset.k)}});
+ Array.prototype.forEach.call(b.querySelectorAll(".svf"),function(e){e.oninput=function(){fromF(e.dataset.k)}});
+ upd();
  $("svs").onclick=async function(){
   var np=Object.assign({},px),ok=true;
   Array.prototype.forEach.call(b.querySelectorAll(".svi"),function(e){var k=e.dataset.k,on=b.querySelector('.svo[data-k="'+k+'"]').checked;if(e.value===""){if(on)ok=false;return}var v=+e.value;if(!Number.isInteger(v)||v<0||v>50||(on&&v<1)){ok=false;return}if(on){np[k]=v;delete np["m_"+k]}else{np[k]=0;if(v>0)np["m_"+k]=v}});
@@ -208,7 +214,7 @@ async function packs(){
  var r=await sb.rpc("admin_offres_get");
  if(r.error){b.innerHTML='<h2>Prix des packs</h2><p class="mu">Non disponible : '+esc(r.error.message)+'</p>';return}
  PK=(r.data||[]).map(function(x){return {credits:x.credits,montant:x.montant||parseInt(String(x.prix||"").replace(/[^0-9]/g,""),10)||0}});
- drawPk();
+ drawPk();if(window.svUpd)window.svUpd();
 }
 function drawPk(){
  var b=$("pk"),h='<h2>Prix des packs</h2><p class="mu">Ce que tes clients voient dans « Premium ». Prix en FCFA, multiple de 5. Le changement s\'applique à leur prochaine ouverture.</p>';
