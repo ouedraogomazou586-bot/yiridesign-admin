@@ -39,7 +39,7 @@ button{background:var(--ac);color:#062925;font-weight:700;border:0;cursor:pointe
  <div class="tabs2"><button class="sec on" id="t1">📊 Bord</button><button class="sec" id="t3">👥 Utilisateurs</button><button class="sec" id="t2">🎟️ Codes</button><button class="sec" id="t4">💰 Prix</button></div>
  <div id="body"><p class="mu">Chargement…</p></div>
 <div id="us" class="hid"></div>
-<div id="pr" class="hid"><div id="svp"></div><div id="pk"></div><div id="vsx"></div></div>
+<div id="pr" class="hid"><div id="svp"></div><div id="pk"></div><div id="ntfa"></div><div id="vsx"></div></div>
 <div id="cr" class="hid"><div id="stk"></div><h2>Codes de recharge</h2>
  <p class="mu">Crée des codes à vendre ou offrir au client. Chaque code donne des crédits IA.</p>
  <div id="cpk"></div><div class="two"><div><label class="mu">Nombre de codes</label><input id="cn" type="number" inputmode="numeric" min="1" max="200" value="1"></div>
@@ -245,6 +245,14 @@ function codeChips(){var z=$("cpk");if(!z)return;var L=(PK||[]).filter(function(
  z.innerHTML='<label class="mu">Choisir un pack</label><div style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px">'+L.map(function(x,i){return '<button class="sec" data-cp="'+x.credits+'" style="padding:8px 10px;margin:0">'+esc(x.nom||"Pack")+' · '+x.credits+' cr</button>'}).join("")+'</div>';
  Array.prototype.forEach.call(z.querySelectorAll("[data-cp]"),function(b){b.onclick=function(){$("cc").value=b.dataset.cp;Array.prototype.forEach.call(z.querySelectorAll("[data-cp]"),function(o){o.style.outline=o===b?"2px solid #14b8a6":""})}});}
 
+function ntfAdmin(){var b=$("ntfa");if(!b)return;
+ b.innerHTML='<h2>Notifications</h2><p class="mu">Envoie un message sur le téléphone de tous les utilisateurs qui ont accepté les notifications. 1 à 2 par semaine au maximum, sinon ils les désactivent.</p><p class="mu" id="nt_n">Abonnés : …</p><label class="mu">Titre (court)</label><input id="nt_t" maxlength="60" placeholder="Ex : 🌙 Modèles de Tabaski"><label class="mu">Message</label><textarea id="nt_b" maxlength="180" rows="3" placeholder="Ex : Crée ton affiche de Tabaski en 1 geste !"></textarea><label class="mu">Ouvrir à l\'appui</label><select id="nt_u"><option value="./">Accueil</option><option value="./?go=qk">Affiche en 1 geste</option><option value="./?go=facture">Facture</option><option value="./?go=scanner">Scanner</option></select><button id="nt_s">Envoyer à tous</button><p class="mu" id="nt_m"></p>';
+ sb.functions.invoke("push",{body:{action:"count"}}).then(function(r){var d=r.data||{};$("nt_n").textContent=d.ok?("Abonnés : "+d.n):"Abonnés : fonction « push » pas encore installée."}).catch(function(){$("nt_n").textContent="Abonnés : indisponible."});
+ $("nt_s").onclick=async function(){var t=$("nt_t").value.trim(),m=$("nt_b").value.trim();if(!t||!m){$("nt_m").textContent="Écris un titre et un message.";return}
+  if($("nt_s").dataset.c!=="1"){$("nt_s").dataset.c="1";$("nt_s").textContent="Confirmer l'envoi à tous";setTimeout(function(){var x=$("nt_s");if(x){x.dataset.c="";x.textContent="Envoyer à tous"}},5000);return}
+  $("nt_s").dataset.c="";$("nt_s").textContent="Envoyer à tous";$("nt_s").disabled=true;$("nt_m").textContent="Envoi…";
+  try{var r=await sb.functions.invoke("push",{body:{action:"send",title:t,body:m,url:$("nt_u").value}});var d=r.data||{};$("nt_s").disabled=false;
+   $("nt_m").textContent=d.ok?("✅ Envoyé à "+d.envoyes+" téléphone(s)"+(d.retires?" · "+d.retires+" abonnement(s) expiré(s) retiré(s)":"")+"."):("❌ "+(/refuse/.test(d.error||"")?"Compte non administrateur.":(d.error||(r.error&&r.error.message)||"Erreur")));}catch(x){$("nt_s").disabled=false;$("nt_m").textContent="❌ Erreur réseau."}};}
 var KN={text:"Texte auto",voix:"Voix off",bg:"Fond de photo",fond:"Fond d'affiche",ocr:"Lecture d'image",clip:"Clip"},KF={voix:2.8,text:0.5};
 async function stock(a){
  var z=$("stk");if(!z)return;
@@ -298,10 +306,11 @@ $("cg").onclick=async function(){
  var r=await sb.rpc("admin_ia_gen",{p_n:n,p_credits:c});$("cg").disabled=false;
  if(r.error){$("cm").textContent=/refuse/.test(r.error.message)?"Ce compte n'est pas administrateur.":"Erreur : "+r.error.message;return}
  CODES=r.data||[];codes();$("cm").className="ok";$("cm").textContent=CODES.length+" code(s) créé(s), "+c+" crédits chacun.";
- $("cl").innerHTML=CODES.map(function(x,i){return '<div class="cd" style="flex-wrap:wrap"><span>'+esc(x)+'</span><button class="sec" data-l="Copier" data-c="'+esc(x)+'">Copier</button><button class="sec" data-sm="'+i+'">📱 Envoyer</button><div data-sb="'+i+'" class="hid" style="width:100%;margin-top:8px"><input data-sp="'+i+'" type="tel" inputmode="tel" placeholder="Numéro du client (ex : 70 00 00 00)"><div class="two" style="margin-top:8px"><button data-sw="'+i+'" style="margin:0;background:#16a34a;color:#fff">💬 WhatsApp</button><button class="sec" data-ss="'+i+'" style="margin:0">📱 SMS</button></div><div class="mu" data-sr="'+i+'"></div></div></div>'}).join("");
+ $("cl").innerHTML=CODES.map(function(x,i){return '<div class="cd" style="flex-wrap:wrap"><span>'+esc(x)+'</span><button class="sec" data-l="Copier" data-c="'+esc(x)+'">Copier</button><button class="sec" data-sm="'+i+'">📱 Envoyer</button><div data-sb="'+i+'" class="hid" style="width:100%;margin-top:8px"><div style="display:flex;gap:8px"><input data-sp="'+i+'" type="tel" inputmode="tel" placeholder="Numéro du client (ex : 70 00 00 00)" style="flex:1;min-width:0">'+(navigator.contacts&&navigator.contacts.select?'<button class="sec" data-ct="'+i+'" style="margin:0;padding:0 14px" title="Choisir dans mes contacts">📇</button>':'')+'</div><div class="two" style="margin-top:8px"><button data-sw="'+i+'" style="margin:0;background:#16a34a;color:#fff">💬 WhatsApp</button><button class="sec" data-ss="'+i+'" style="margin:0">📱 SMS</button></div><div class="mu" data-sr="'+i+'"></div></div></div>'}).join("");
  $("ca").className="sec";$("ca").dataset.l="Copier tous les codes";
  Array.prototype.forEach.call($("cl").querySelectorAll("button[data-c]"),function(b){b.onclick=function(){cp(b.dataset.c,b)}});
  Array.prototype.forEach.call($("cl").querySelectorAll("button[data-sm]"),function(b){b.onclick=function(){var z=$("cl").querySelector('[data-sb="'+b.dataset.sm+'"]');z.classList.toggle("hid");var q=z.querySelector("input");if(q)q.focus()}});
+ Array.prototype.forEach.call($("cl").querySelectorAll("button[data-ct]"),function(b){b.onclick=function(){navigator.contacts.select(["tel"],{multiple:false}).then(function(L){var t=L&&L[0]&&(L[0].tel||[])[0];if(t)$("cl").querySelector('[data-sp="'+b.dataset.ct+'"]').value=t}).catch(function(){})}});
  Array.prototype.forEach.call($("cl").querySelectorAll("button[data-sw]"),function(b){b.onclick=function(){var i=+b.dataset.sw;waCode(CODES[i],c,$("cl").querySelector('[data-sp="'+i+'"]').value,$("cl").querySelector('[data-sr="'+i+'"]'))}});
  Array.prototype.forEach.call($("cl").querySelectorAll("button[data-ss]"),function(b){b.onclick=function(){var i=+b.dataset.ss;smsCode(CODES[i],c,$("cl").querySelector('[data-sp="'+i+'"]').value,b,$("cl").querySelector('[data-sr="'+i+'"]'))}});
 };
@@ -317,7 +326,7 @@ async function smsCode(code,cr,tel,btn,out){var t=String(tel||"").replace(/\D/g,
   out.textContent="✅ SMS envoyé au "+t+".";}catch(x){btn.disabled=false;out.textContent="❌ Erreur réseau.";}}
 boot();codes();
 
-function tab(n){$("body").classList.toggle("hid",n!=1);$("us").classList.toggle("hid",n!=3);$("cr").classList.toggle("hid",n!=2);$("pr").classList.toggle("hid",n!=4);$("t1").classList.toggle("on",n==1);$("t3").classList.toggle("on",n==3);$("t2").classList.toggle("on",n==2);$("t4").classList.toggle("on",n==4);if(n==2){codes();if(PK&&PK.length)codeChips();else packs();}if(n==4){svcPrix();packs();vsmp();}window.scrollTo(0,0)}
+function tab(n){$("body").classList.toggle("hid",n!=1);$("us").classList.toggle("hid",n!=3);$("cr").classList.toggle("hid",n!=2);$("pr").classList.toggle("hid",n!=4);$("t1").classList.toggle("on",n==1);$("t3").classList.toggle("on",n==3);$("t2").classList.toggle("on",n==2);$("t4").classList.toggle("on",n==4);if(n==2){codes();if(PK&&PK.length)codeChips();else packs();}if(n==4){svcPrix();packs();ntfAdmin();vsmp();}window.scrollTo(0,0)}
 $("t1").onclick=function(){tab(1)};$("t3").onclick=function(){tab(3)};$("t2").onclick=function(){tab(2)};$("t4").onclick=function(){tab(4)};tab(1);
 try{if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js");}catch(e){}
 </script></body></html>
