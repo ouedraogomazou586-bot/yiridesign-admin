@@ -42,7 +42,7 @@ button{background:var(--ac);color:#062925;font-weight:700;border:0;cursor:pointe
 <div id="pr" class="hid"><div id="svp"></div><div id="pk"></div><div id="vsx"></div></div>
 <div id="cr" class="hid"><div id="stk"></div><h2>Codes de recharge</h2>
  <p class="mu">Crée des codes à vendre ou offrir au client. Chaque code donne des crédits IA.</p>
- <div class="two"><div><label class="mu">Nombre de codes</label><input id="cn" type="number" inputmode="numeric" min="1" max="200" value="1"></div>
+ <div id="cpk"></div><div class="two"><div><label class="mu">Nombre de codes</label><input id="cn" type="number" inputmode="numeric" min="1" max="200" value="1"></div>
  <div><label class="mu">Crédits par code</label><input id="cc" type="number" inputmode="numeric" min="1" value="20"></div></div>
  <button id="cg">Créer les codes</button>
  <div class="msg" id="cm"></div><div id="cl"></div>
@@ -182,12 +182,12 @@ async function vsmp(){
   }
   var keep=L.textContent;await vsmp();if($("vsl"))$("vsl").textContent=keep;};
 }
-var SVK=[["text","Texte automatique (CV, lettre, affiches…)",1],["voix","Voix off",2],["fond","Fond / décor par IA",0],["logo","Symbole de logo par IA",0],["ocr","Extraire le texte (scanner)",0],["bg","Détourage en ligne",0]],SVC=null;
+var SVK=[["text","Texte automatique (CV, lettre, affiches…)",1],["voix","Voix off",2],["fond","Fond / décor par IA",0],["logo","Symbole de logo par IA",0],["ocr","Extraire le texte (scanner)",0],["doc","Photo → liste de prix / facture",1],["retouche","Retouche photo par IA",0],["bg","Détourage en ligne",0]],SVC=null;
 async function svcPrix(){
  var b=$("svp");if(!b)return;
  var r=await sb.rpc("admin_ia_get");
  if(r.error||!r.data){b.innerHTML='<h2>Prix par service</h2><p class="mu">Non disponible : '+esc(r.error?r.error.message:"vide")+'</p>';return}
- SVC=r.data;var px=SVC.prix||{},lim=SVC.limite||{};
+ SVC=r.data;var px=SVC.prix||{},lim=SVC.limite||{};setTimeout(function(){if(window.pkUpd)pkUpd()},0);
  var h='<h2>Interrupteur général de l\'IA</h2><label class="chk" style="display:flex;gap:12px;align-items:center;justify-content:flex-start;margin:6px 0;text-align:left"><input type="checkbox" class="swt" id="iaon"'+(SVC.actif===true?' checked':'')+'> IA ouverte aux utilisateurs</label><p class="mu">Éteint = aucun service IA (prix, boutons ✨) n\'apparaît chez les utilisateurs, même si les prix sont réglés. Allume seulement quand la facturation Google est active et que tu as vu une vraie facture.</p><hr><h2>Crédits et prix par service</h2><p class="mu">Combien de crédits chaque usage coûte au client. Interrupteur vert = service ouvert aux clients. Éteint = service fermé (le prix est gardé pour plus tard). Le changement s\'applique à la prochaine ouverture de l\'application du client. Les 2 textes offerts par téléphone ne changent pas.</p>';
  SVK.forEach(function(k){var v=px[k[0]],on=v>0,sh=on?v:(px["m_"+k[0]]||"");h+='<div style="margin:12px 0;padding:10px;border:1px solid #ddd;border-radius:12px"><label class="chk" style="display:flex;gap:12px;align-items:center;justify-content:flex-start;margin:0 0 6px;text-align:left"><input type="checkbox" class="svo swt" data-k="'+k[0]+'"'+(on?' checked':'')+'> <b>'+esc(k[1])+'</b></label><div class="two" style="align-items:end"><div><label class="mu">Crédits</label><input class="svi" data-k="'+k[0]+'" type="number" inputmode="numeric" min="0" max="50" value="'+(sh===""?"":sh)+'" placeholder="'+(k[2]||"")+'"></div><div><label class="mu">Prix pour le client (FCFA)</label><input class="svf" data-k="'+k[0]+'" type="number" inputmode="numeric" min="0" placeholder="—"></div></div><div class="mu" data-sf="'+k[0]+'" style="margin-top:4px"></div></div>'});
  h+='<p class="mu" id="svpc"></p><button id="svs">Enregistrer les prix des services</button><p class="mu" id="svm"></p><p class="mu">Conseil de départ : texte 1 crédit, voix 2 crédits. Vérifie ta facture Google avant de changer les autres.</p>';
@@ -209,32 +209,41 @@ async function svcPrix(){
   $("svm").textContent=q.error?("Erreur : "+q.error.message):"Enregistré ✓ Les clients verront ces prix à leur prochaine ouverture.";if(!q.error){SVC=q.data||SVC;px=np}};
 }
 var PK=[];
+var PKS=[["","Général (tous les services IA)"],["logo","Logo IA"],["voix","Voix off"],["fond","Fond / décor IA"],["text","Texte automatique"],["doc","Photo → liste de prix"],["retouche","Retouche photo"],["ocr","Extraire le texte"]],PKN={logo:["logo","logos"],voix:["voix off","voix off"],fond:["décor","décors"],text:["texte","textes"],doc:["lecture de liste","lectures de liste"],retouche:["retouche","retouches"],ocr:["lecture","lectures"]};
+function pkCan(c,svc){var px=(SVC&&SVC.prix)||{};function n(k){var p=+px[k]||0;if(!(p>0))return "";var q=Math.floor(c/p);return q+" "+(PKN[k]?PKN[k][q>1?1:0]:k);}
+ if(svc){var t=n(svc);return t?("De quoi faire : "+t):"Ce service n'a pas encore de prix (ou est éteint)."}
+ var L=["logo","voix","fond","text"].map(n).filter(Boolean);return L.length?("Par exemple : "+L.join(" · ")):"";}
 async function packs(){
  var b=$("pk");if(!b)return;
  var r=await sb.rpc("admin_offres_get");
- if(r.error){b.innerHTML='<h2>Prix des packs</h2><p class="mu">Non disponible : '+esc(r.error.message)+'</p>';return}
- PK=(r.data||[]).map(function(x){return {credits:x.credits,montant:x.montant||parseInt(String(x.prix||"").replace(/[^0-9]/g,""),10)||0}});
- drawPk();if(window.svUpd)window.svUpd();
+ if(r.error){b.innerHTML='<h2>Packs de crédits</h2><p class="mu">Non disponible : '+esc(r.error.message)+'</p>';return}
+ PK=(r.data||[]).map(function(x){return {credits:x.credits,montant:x.montant||parseInt(String(x.prix||"").replace(/[^0-9]/g,""),10)||0,nom:x.nom||"",svc:x.svc||""}});
+ drawPk();if(window.svUpd)window.svUpd();codeChips();
 }
 function drawPk(){
- var b=$("pk"),h='<h2>Prix des packs</h2><p class="mu">Ce que tes clients voient dans « Premium ». Prix en FCFA, multiple de 5. Le changement s\'applique à leur prochaine ouverture.</p>';
+ var b=$("pk"),h='<h2>Packs de crédits</h2><p class="mu">Ce que tes clients voient dans « Premium ». Donne un nom à chaque pack (ex : Pack Logo) et choisis le service mis en avant. Les crédits restent valables pour tous les services IA. Prix en FCFA, multiple de 5.</p>';
  var GT='display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px;gap:8px;align-items:center';
- if(PK.length)h+='<div style="'+GT+';margin:6px 0 2px"><span class="mu">Crédits</span><span class="mu">Prix (FCFA)</span><span></span></div>';
- PK.forEach(function(x,i){h+='<div style="'+GT+';margin:6px 0 0"><input class="pkc" data-i="'+i+'" type="number" inputmode="numeric" min="1" value="'+x.credits+'"><input class="pkm" data-i="'+i+'" type="number" inputmode="numeric" min="100" step="5" value="'+x.montant+'"><button class="sec" data-d="'+i+'" title="Retirer ce pack" style="padding:10px 0;font-size:18px">🗑</button></div><div class="mu" data-pu="'+i+'" style="margin:2px 0 6px"></div>'});
+ PK.forEach(function(x,i){h+='<div style="border:1px solid #ddd;border-radius:12px;padding:10px;margin:10px 0"><input class="pkn" data-i="'+i+'" type="text" maxlength="40" placeholder="Nom du pack (ex : Pack Logo)" value="'+esc(x.nom||"")+'"><select class="pks" data-i="'+i+'" style="margin-top:8px;width:100%">'+PKS.map(function(o){return '<option value="'+o[0]+'"'+((x.svc||"")===o[0]?' selected':'')+'>Mis en avant : '+esc(o[1])+'</option>'}).join("")+'</select><div style="'+GT+';margin:8px 0 0"><span class="mu">Crédits</span><span class="mu">Prix (FCFA)</span><span></span></div><div style="'+GT+'"><input class="pkc" data-i="'+i+'" type="number" inputmode="numeric" min="1" value="'+x.credits+'"><input class="pkm" data-i="'+i+'" type="number" inputmode="numeric" min="100" step="5" value="'+x.montant+'"><button class="sec" data-d="'+i+'" title="Retirer ce pack" style="padding:10px 0;font-size:18px">🗑</button></div><div class="mu" data-pu="'+i+'" style="margin:4px 0 0"></div></div>'});
  if(!PK.length)h+='<p class="mu">Aucun pack. Ajoute-en un ci-dessous.</p>';
- h+='<div style="display:flex;gap:8px;margin-top:8px"><button class="sec" id="pka" style="flex:1">+ Ajouter un pack</button><button class="sec" id="pkd" style="flex:1">Prix de lancement</button></div><button id="pks">Enregistrer les prix</button><p class="mu" id="pkm"></p>';
+ h+='<div style="display:flex;gap:8px;margin-top:8px"><button class="sec" id="pka" style="flex:1">+ Ajouter un pack</button><button class="sec" id="pkd" style="flex:1">Packs de lancement</button></div><button id="pks">Enregistrer les packs</button><p class="mu" id="pkm"></p>';
  b.innerHTML=h;
- function upd(){Array.prototype.forEach.call(b.querySelectorAll(".pkc"),function(e){var i=e.dataset.i,m=+b.querySelector('.pkm[data-i="'+i+'"]').value,c=+e.value,u=b.querySelector('[data-pu="'+i+'"]');var pc=(c>0&&m>0)?m/c:0;u.textContent=pc?("≈ "+Math.round(pc*10)/10+" F par crédit"+(pc<25?" ⚠ Sous 25 F : la voix risque de ne plus être rentable.":"")):"";u.style.color=(pc&&pc<25)?"#f59e0b":""})}
- function sync(){Array.prototype.forEach.call(b.querySelectorAll(".pkc"),function(e){PK[e.dataset.i].credits=+e.value});Array.prototype.forEach.call(b.querySelectorAll(".pkm"),function(e){PK[e.dataset.i].montant=+e.value})}
- Array.prototype.forEach.call(b.querySelectorAll("input"),function(e){e.oninput=function(){upd();sync();if(window.svUpd)window.svUpd()}});upd();
+ function upd(){Array.prototype.forEach.call(b.querySelectorAll(".pkc"),function(e){var i=e.dataset.i,m=+b.querySelector('.pkm[data-i="'+i+'"]').value,c=+e.value,u=b.querySelector('[data-pu="'+i+'"]');var pc=(c>0&&m>0)?m/c:0;var can=c>0?pkCan(c,PK[i].svc):"";u.textContent=(pc?("≈ "+Math.round(pc*10)/10+" F par crédit"+(pc<25?" ⚠ Sous 25 F : la voix risque de ne plus être rentable.":"")):"")+(can?" · "+can:"");u.style.color=(pc&&pc<25)?"#f59e0b":""})}
+ window.pkUpd=upd;
+ function sync(){Array.prototype.forEach.call(b.querySelectorAll(".pkc"),function(e){PK[e.dataset.i].credits=+e.value});Array.prototype.forEach.call(b.querySelectorAll(".pkm"),function(e){PK[e.dataset.i].montant=+e.value});Array.prototype.forEach.call(b.querySelectorAll(".pkn"),function(e){PK[e.dataset.i].nom=e.value.trim()});Array.prototype.forEach.call(b.querySelectorAll(".pks"),function(e){PK[e.dataset.i].svc=e.value})}
+ Array.prototype.forEach.call(b.querySelectorAll("input,select"),function(e){e.oninput=e.onchange=function(){sync();upd();if(window.svUpd)window.svUpd()}});upd();
  Array.prototype.forEach.call(b.querySelectorAll("button[data-d]"),function(x){x.onclick=function(){sync();PK.splice(+x.dataset.d,1);drawPk()}});
- $("pka").onclick=function(){sync();if(PK.length>=6){$("pkm").textContent="6 packs maximum.";return}PK.push({credits:10,montant:500});drawPk()};
- $("pkd").onclick=function(){PK=[{credits:10,montant:300},{credits:25,montant:700},{credits:60,montant:1600},{credits:150,montant:3750}];drawPk()};
+ $("pka").onclick=function(){sync();if(PK.length>=6){$("pkm").textContent="6 packs maximum.";return}PK.push({credits:10,montant:500,nom:"",svc:""});drawPk()};
+ $("pkd").onclick=function(){PK=[{credits:10,montant:300,nom:"Pack Découverte",svc:""},{credits:25,montant:700,nom:"Pack Voix off",svc:"voix"},{credits:60,montant:1600,nom:"Pack Logo",svc:"logo"},{credits:150,montant:3750,nom:"Pack Pro",svc:""}];drawPk()};
  $("pks").onclick=async function(){sync();var ok=PK.length>0&&PK.every(function(x){return x.credits>=1&&x.credits<=10000&&x.montant>=100&&x.montant<=200000&&x.montant%5===0});
   if(!ok){$("pkm").textContent="Vérifie : crédits entiers, prix entre 100 et 200 000, multiple de 5.";return}
   $("pkm").textContent="…";var q=await sb.rpc("admin_offres_set",{p_packs:PK});
-  $("pkm").textContent=q.error?("Erreur : "+q.error.message):"Enregistré ✓ Les clients verront ces prix à leur prochaine ouverture.";};
+  if(q.error){$("pkm").textContent="Erreur : "+q.error.message;return}
+  var chk=await sb.rpc("admin_offres_get"),kept=!chk.error&&(chk.data||[]).some(function(x){return x.nom});var named=PK.some(function(x){return x.nom});
+  $("pkm").textContent="Enregistré ✓ Les clients verront ces packs à leur prochaine ouverture."+(named&&!kept?" ⚠ Les prix sont gardés, mais le serveur n'a pas gardé les noms des packs : préviens Claude, il te donnera la petite correction à faire dans Supabase.":"");codeChips();};
 }
+function codeChips(){var z=$("cpk");if(!z)return;var L=(PK||[]).filter(function(x){return x.credits>0});if(!L.length){z.innerHTML="";return}
+ z.innerHTML='<label class="mu">Choisir un pack</label><div style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px">'+L.map(function(x,i){return '<button class="sec" data-cp="'+x.credits+'" style="padding:8px 10px;margin:0">'+esc(x.nom||"Pack")+' · '+x.credits+' cr</button>'}).join("")+'</div>';
+ Array.prototype.forEach.call(z.querySelectorAll("[data-cp]"),function(b){b.onclick=function(){$("cc").value=b.dataset.cp;Array.prototype.forEach.call(z.querySelectorAll("[data-cp]"),function(o){o.style.outline=o===b?"2px solid #14b8a6":""})}});}
 
 var KN={text:"Texte auto",voix:"Voix off",bg:"Fond de photo",fond:"Fond d'affiche",ocr:"Lecture d'image",clip:"Clip"},KF={voix:2.8,text:0.5};
 async function stock(a){
@@ -289,14 +298,22 @@ $("cg").onclick=async function(){
  var r=await sb.rpc("admin_ia_gen",{p_n:n,p_credits:c});$("cg").disabled=false;
  if(r.error){$("cm").textContent=/refuse/.test(r.error.message)?"Ce compte n'est pas administrateur.":"Erreur : "+r.error.message;return}
  CODES=r.data||[];codes();$("cm").className="ok";$("cm").textContent=CODES.length+" code(s) créé(s), "+c+" crédits chacun.";
- $("cl").innerHTML=CODES.map(function(x){return '<div class="cd"><span>'+esc(x)+'</span><button class="sec" data-l="Copier" data-c="'+esc(x)+'">Copier</button></div>'}).join("");
+ $("cl").innerHTML=CODES.map(function(x,i){return '<div class="cd" style="flex-wrap:wrap"><span>'+esc(x)+'</span><button class="sec" data-l="Copier" data-c="'+esc(x)+'">Copier</button><button class="sec" data-sm="'+i+'">📱 SMS</button><div data-sb="'+i+'" class="hid" style="width:100%;margin-top:8px"><div class="two" style="grid-template-columns:2fr 1fr;align-items:center"><input data-sp="'+i+'" type="tel" inputmode="tel" placeholder="Numéro du client (ex : 70 00 00 00)"><button data-ss="'+i+'" style="margin:0">Envoyer</button></div><div class="mu" data-sr="'+i+'"></div></div></div>'}).join("");
  $("ca").className="sec";$("ca").dataset.l="Copier tous les codes";
- Array.prototype.forEach.call($("cl").querySelectorAll("button"),function(b){b.onclick=function(){cp(b.dataset.c,b)}});
+ Array.prototype.forEach.call($("cl").querySelectorAll("button[data-c]"),function(b){b.onclick=function(){cp(b.dataset.c,b)}});
+ Array.prototype.forEach.call($("cl").querySelectorAll("button[data-sm]"),function(b){b.onclick=function(){var z=$("cl").querySelector('[data-sb="'+b.dataset.sm+'"]');z.classList.toggle("hid");var q=z.querySelector("input");if(q)q.focus()}});
+ Array.prototype.forEach.call($("cl").querySelectorAll("button[data-ss]"),function(b){b.onclick=function(){var i=+b.dataset.ss;smsCode(CODES[i],c,$("cl").querySelector('[data-sp="'+i+'"]').value,b,$("cl").querySelector('[data-sr="'+i+'"]'))}});
 };
 $("ca").onclick=function(){cp(CODES.join("\n"),$("ca"))};
+async function smsCode(code,cr,tel,btn,out){var t=String(tel||"").replace(/\D/g,"");if(t.length<8){out.textContent="Numéro invalide (8 chiffres au Burkina).";return}
+ var msg="YiriDesign: votre code de recharge est "+code+" ("+cr+" credits). Ouvrez l'application > Premium > saisissez le code. Merci !";
+ btn.disabled=true;out.textContent="Envoi…";
+ try{var r=await sb.functions.invoke("send-sms",{body:{to:t,message:msg}});btn.disabled=false;var d=r.data||{};
+  if(r.error||!d.ok){var e=(d&&d.error)||(r.error&&r.error.message)||"";out.textContent="❌ "+(/sms_non_configure/.test(e)?"SMS pas encore configuré (secrets Orange manquants dans Supabase).":/numero_invalide/.test(e)?"Numéro invalide.":/refuse/.test(e)?"Compte non administrateur.":/orange_4|orange_token/.test(e)?"Orange a refusé l'envoi (identifiants, solde de SMS ou numéro expéditeur).":/Failed to send|non-2xx|not found|404/i.test(e)?"La fonction send-sms n'est pas encore installée dans Supabase.":"Erreur : "+e);return}
+  out.textContent="✅ SMS envoyé au "+t+".";}catch(x){btn.disabled=false;out.textContent="❌ Erreur réseau.";}}
 boot();codes();
 
-function tab(n){$("body").classList.toggle("hid",n!=1);$("us").classList.toggle("hid",n!=3);$("cr").classList.toggle("hid",n!=2);$("pr").classList.toggle("hid",n!=4);$("t1").classList.toggle("on",n==1);$("t3").classList.toggle("on",n==3);$("t2").classList.toggle("on",n==2);$("t4").classList.toggle("on",n==4);if(n==2)codes();if(n==4){svcPrix();packs();vsmp();}window.scrollTo(0,0)}
+function tab(n){$("body").classList.toggle("hid",n!=1);$("us").classList.toggle("hid",n!=3);$("cr").classList.toggle("hid",n!=2);$("pr").classList.toggle("hid",n!=4);$("t1").classList.toggle("on",n==1);$("t3").classList.toggle("on",n==3);$("t2").classList.toggle("on",n==2);$("t4").classList.toggle("on",n==4);if(n==2){codes();if(PK&&PK.length)codeChips();else packs();}if(n==4){svcPrix();packs();vsmp();}window.scrollTo(0,0)}
 $("t1").onclick=function(){tab(1)};$("t3").onclick=function(){tab(3)};$("t2").onclick=function(){tab(2)};$("t4").onclick=function(){tab(4)};tab(1);
 try{if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js");}catch(e){}
 </script></body></html>
