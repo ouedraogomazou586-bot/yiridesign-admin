@@ -218,15 +218,16 @@ async function packs(){
 }
 function drawPk(){
  var b=$("pk"),h='<h2>Prix des packs</h2><p class="mu">Ce que tes clients voient dans « Premium ». Prix en FCFA, multiple de 5. Le changement s\'applique à leur prochaine ouverture.</p>';
- PK.forEach(function(x,i){h+='<div class="two" style="align-items:end;margin:6px 0"><div><label class="mu">Crédits</label><input class="pkc" data-i="'+i+'" type="number" inputmode="numeric" min="1" value="'+x.credits+'"></div><div><label class="mu">Prix (FCFA)</label><input class="pkm" data-i="'+i+'" type="number" inputmode="numeric" min="100" step="5" value="'+x.montant+'"></div></div><div class="mu" data-pu="'+i+'"></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 6px"><button class="sec" data-m="'+i+'" data-s="-50">− 50 F</button><button class="sec" data-m="'+i+'" data-s="50">+ 50 F</button><button class="sec" data-d="'+i+'">Retirer ce pack</button></div>'});
+ var GT='display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px;gap:8px;align-items:center';
+ if(PK.length)h+='<div style="'+GT+';margin:6px 0 2px"><span class="mu">Crédits</span><span class="mu">Prix (FCFA)</span><span></span></div>';
+ PK.forEach(function(x,i){h+='<div style="'+GT+';margin:6px 0 0"><input class="pkc" data-i="'+i+'" type="number" inputmode="numeric" min="1" value="'+x.credits+'"><input class="pkm" data-i="'+i+'" type="number" inputmode="numeric" min="100" step="5" value="'+x.montant+'"><button class="sec" data-d="'+i+'" title="Retirer ce pack" style="padding:10px 0;font-size:18px">🗑</button></div><div class="mu" data-pu="'+i+'" style="margin:2px 0 6px"></div>'});
  if(!PK.length)h+='<p class="mu">Aucun pack. Ajoute-en un ci-dessous.</p>';
- h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="sec" id="pka">+ Ajouter un pack</button><button class="sec" id="pkd">Prix de lancement</button></div><button id="pks">Enregistrer les prix</button><p class="mu" id="pkm"></p>';
+ h+='<div style="display:flex;gap:8px;margin-top:8px"><button class="sec" id="pka" style="flex:1">+ Ajouter un pack</button><button class="sec" id="pkd" style="flex:1">Prix de lancement</button></div><button id="pks">Enregistrer les prix</button><p class="mu" id="pkm"></p>';
  b.innerHTML=h;
  function upd(){Array.prototype.forEach.call(b.querySelectorAll(".pkc"),function(e){var i=e.dataset.i,m=+b.querySelector('.pkm[data-i="'+i+'"]').value,c=+e.value,u=b.querySelector('[data-pu="'+i+'"]');var pc=(c>0&&m>0)?m/c:0;u.textContent=pc?("≈ "+Math.round(pc*10)/10+" F par crédit"+(pc<25?" ⚠ Sous 25 F : la voix risque de ne plus être rentable.":"")):"";u.style.color=(pc&&pc<25)?"#f59e0b":""})}
  function sync(){Array.prototype.forEach.call(b.querySelectorAll(".pkc"),function(e){PK[e.dataset.i].credits=+e.value});Array.prototype.forEach.call(b.querySelectorAll(".pkm"),function(e){PK[e.dataset.i].montant=+e.value})}
- Array.prototype.forEach.call(b.querySelectorAll("input"),function(e){e.oninput=upd});upd();
+ Array.prototype.forEach.call(b.querySelectorAll("input"),function(e){e.oninput=function(){upd();sync();if(window.svUpd)window.svUpd()}});upd();
  Array.prototype.forEach.call(b.querySelectorAll("button[data-d]"),function(x){x.onclick=function(){sync();PK.splice(+x.dataset.d,1);drawPk()}});
- Array.prototype.forEach.call(b.querySelectorAll("button[data-m]"),function(x){x.onclick=function(){sync();var q=PK[+x.dataset.m];q.montant=Math.max(100,Math.min(200000,Math.round((q.montant+(+x.dataset.s))/5)*5));drawPk()}});
  $("pka").onclick=function(){sync();if(PK.length>=6){$("pkm").textContent="6 packs maximum.";return}PK.push({credits:10,montant:500});drawPk()};
  $("pkd").onclick=function(){PK=[{credits:10,montant:300},{credits:25,montant:700},{credits:60,montant:1600},{credits:150,montant:3750}];drawPk()};
  $("pks").onclick=async function(){sync();var ok=PK.length>0&&PK.every(function(x){return x.credits>=1&&x.credits<=10000&&x.montant>=100&&x.montant<=200000&&x.montant%5===0});
