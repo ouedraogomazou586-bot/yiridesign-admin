@@ -298,13 +298,17 @@ $("cg").onclick=async function(){
  var r=await sb.rpc("admin_ia_gen",{p_n:n,p_credits:c});$("cg").disabled=false;
  if(r.error){$("cm").textContent=/refuse/.test(r.error.message)?"Ce compte n'est pas administrateur.":"Erreur : "+r.error.message;return}
  CODES=r.data||[];codes();$("cm").className="ok";$("cm").textContent=CODES.length+" code(s) créé(s), "+c+" crédits chacun.";
- $("cl").innerHTML=CODES.map(function(x,i){return '<div class="cd" style="flex-wrap:wrap"><span>'+esc(x)+'</span><button class="sec" data-l="Copier" data-c="'+esc(x)+'">Copier</button><button class="sec" data-sm="'+i+'">📱 SMS</button><div data-sb="'+i+'" class="hid" style="width:100%;margin-top:8px"><div class="two" style="grid-template-columns:2fr 1fr;align-items:center"><input data-sp="'+i+'" type="tel" inputmode="tel" placeholder="Numéro du client (ex : 70 00 00 00)"><button data-ss="'+i+'" style="margin:0">Envoyer</button></div><div class="mu" data-sr="'+i+'"></div></div></div>'}).join("");
+ $("cl").innerHTML=CODES.map(function(x,i){return '<div class="cd" style="flex-wrap:wrap"><span>'+esc(x)+'</span><button class="sec" data-l="Copier" data-c="'+esc(x)+'">Copier</button><button class="sec" data-sm="'+i+'">📱 Envoyer</button><div data-sb="'+i+'" class="hid" style="width:100%;margin-top:8px"><input data-sp="'+i+'" type="tel" inputmode="tel" placeholder="Numéro du client (ex : 70 00 00 00)"><div class="two" style="margin-top:8px"><button data-sw="'+i+'" style="margin:0;background:#16a34a;color:#fff">💬 WhatsApp</button><button class="sec" data-ss="'+i+'" style="margin:0">📱 SMS</button></div><div class="mu" data-sr="'+i+'"></div></div></div>'}).join("");
  $("ca").className="sec";$("ca").dataset.l="Copier tous les codes";
  Array.prototype.forEach.call($("cl").querySelectorAll("button[data-c]"),function(b){b.onclick=function(){cp(b.dataset.c,b)}});
  Array.prototype.forEach.call($("cl").querySelectorAll("button[data-sm]"),function(b){b.onclick=function(){var z=$("cl").querySelector('[data-sb="'+b.dataset.sm+'"]');z.classList.toggle("hid");var q=z.querySelector("input");if(q)q.focus()}});
+ Array.prototype.forEach.call($("cl").querySelectorAll("button[data-sw]"),function(b){b.onclick=function(){var i=+b.dataset.sw;waCode(CODES[i],c,$("cl").querySelector('[data-sp="'+i+'"]').value,$("cl").querySelector('[data-sr="'+i+'"]'))}});
  Array.prototype.forEach.call($("cl").querySelectorAll("button[data-ss]"),function(b){b.onclick=function(){var i=+b.dataset.ss;smsCode(CODES[i],c,$("cl").querySelector('[data-sp="'+i+'"]').value,b,$("cl").querySelector('[data-sr="'+i+'"]'))}});
 };
 $("ca").onclick=function(){cp(CODES.join("\n"),$("ca"))};
+function waCode(code,cr,tel,out){var t=String(tel||"").replace(/\D/g,"");if(t.indexOf("00")===0)t=t.slice(2);if(t.length===8)t="226"+t;
+ var msg="Bonjour 👋\nVoici ton code de recharge YiriDesign : *"+code+"* ("+cr+" crédits).\nOuvre l'application › Premium › saisis le code.\nMerci pour ta confiance !";
+ var u="https://wa.me/"+(t.length>=11?t:"")+"?text="+encodeURIComponent(msg);window.open(u,"_blank");out.textContent=t.length>=11?"💬 WhatsApp ouvert : appuie sur Envoyer dans WhatsApp.":"💬 WhatsApp ouvert : choisis le client, puis appuie sur Envoyer.";}
 async function smsCode(code,cr,tel,btn,out){var t=String(tel||"").replace(/\D/g,"");if(t.length<8){out.textContent="Numéro invalide (8 chiffres au Burkina).";return}
  var msg="YiriDesign: votre code de recharge est "+code+" ("+cr+" credits). Ouvrez l'application > Premium > saisissez le code. Merci !";
  btn.disabled=true;out.textContent="Envoi…";
