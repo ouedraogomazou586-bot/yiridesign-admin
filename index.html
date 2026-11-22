@@ -36,14 +36,17 @@ button{background:var(--ac);color:#062925;font-weight:700;border:0;cursor:pointe
 </div>
 <div id="dash" class="hid">
  <div class="top"><h1>YiriDesign Admin</h1><div><button class="sec" id="rf">↻</button> <button class="sec" id="lo">Quitter</button></div></div>
- <div class="tabs2"><button class="sec on" id="t1">📊 Bord</button><button class="sec" id="t3">👥 Utilisateurs</button><button class="sec" id="t2">🎟️ Codes</button><button class="sec" id="t4">💰 Prix</button></div>
+ <div class="tabs2"><button class="sec on" id="t1">📊 Bord</button><button class="sec" id="t3">👥 Utilisateurs</button><button class="sec" id="t2">🎟️ Codes</button><button class="sec" id="t4">💰 Prix</button><button class="sec" id="t5">💵 Finances</button></div>
  <div id="body"><p class="mu">Chargement…</p></div>
 <div id="us" class="hid"></div>
+<div id="fi" class="hid"></div>
 <div id="pr" class="hid"><div id="svp"></div><div id="pk"></div><div id="ntfa"></div><div id="vsx"></div></div>
 <div id="cr" class="hid"><div id="stk"></div><h2>Codes de recharge</h2>
  <p class="mu">Crée des codes à vendre ou offrir au client. Chaque code donne des crédits IA.</p>
  <div id="cpk"></div><div class="two"><div><label class="mu">Nombre de codes</label><input id="cn" type="number" inputmode="numeric" min="1" max="200" value="1"></div>
  <div><label class="mu">Crédits par code</label><input id="cc" type="number" inputmode="numeric" min="1" value="20"></div></div>
+ <div class="two"><div><label class="mu">Prix payé par code (FCFA)</label><input id="cf" type="number" inputmode="numeric" min="0" placeholder="Ex : 1000"></div><div><label class="mu">Pack</label><input id="cpn" placeholder="Ex : Pack Découverte"></div></div>
+ <label class="chk" style="display:flex;gap:10px;align-items:center;justify-content:flex-start;margin:4px 0 8px;text-align:left"><input type="checkbox" id="cof"> Code offert (cadeau, ne compte pas dans le chiffre d'affaires)</label>
  <button id="cg">Créer les codes</button>
  <div class="msg" id="cm"></div><div id="cl"></div>
  <h2>Vérifier un code</h2><div class="two" style="grid-template-columns:2fr 1fr"><input id="vk" placeholder="YIRI-XXXX-XXXX" autocapitalize="characters" autocomplete="off"><button class="sec" id="vb" style="margin:0">Vérifier</button></div><div class="msg" id="vm"></div>
@@ -55,6 +58,15 @@ button{background:var(--ac);color:#062925;font-weight:700;border:0;cursor:pointe
 var URL_="https://segdgrecoreoqvrqwavj.supabase.co",KEY="sb_publishable_D7vXRASIe4twImyViuzW-A_d3JCvRl8";
 var sb=supabase.createClient(URL_,KEY),$=function(i){return document.getElementById(i)};
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+/* v370 : statistiques du service Correction de documents */
+function funnel(P,note){var n0=(P[0]&&P[0].n)||0;if(!P.length||!n0)return '<p class="mu">Pas encore de données.</p>';
+ return P.map(function(x,i){var pc=Math.round(100*x.n/n0),prev=i?P[i-1].n:0,lost=i&&prev?Math.round(100*(prev-x.n)/prev):0;return '<div class="row"><span class="k">'+esc(x.etape)+'</span><span class="b"><i style="width:'+pc+'%"></i></span><span class="v">'+x.n+' · '+pc+' %'+(i&&lost>0?' <small style="color:#dc2626">(-'+lost+' %)</small>':'')+'</span></div>';}).join("")+(note?'<p class="mu">'+note+'</p>':'');}
+function crBlock(u){if(!u.correction)return '<h2>Correction de documents</h2><p class="mu">Exécute finance.sql dans Supabase pour voir ces chiffres.</p>';
+ var TY={rapport:"Rapport de stage",cr:"Compte rendu",pv:"Procès-verbal",lettre:"Lettre",memoire:"Mémoire",demande:"Demande",autre:"Autre"},SR={docx:"Fichier Word",pdf:"Fichier PDF",paste:"Texte collé",photo:"Photo"},IAK={corr:"Grammaire (IA)",style:"Style (IA)",corr_essai:"Essai offert (IA)"},EX={docx:"Word",pdf:"PDF",partage:"Partage",copie:"Copie du texte"};
+ function nm(a,M){return (a||[]).map(function(x){return {nom:M[x.nom]||x.nom,n:x.n};});}
+ return '<h2>📝 Correction de documents (30 jours)</h2>'+funnel(u.correction,'Fautes trouvées en moyenne par document : <b>'+(u.cr_fautes||0)+'</b>.')+
+  '<h2>Types de documents corrigés</h2>'+bars(nm(u.cr_types,TY),"nom","n")+'<h2>Comment le document est ajouté</h2>'+bars(nm(u.cr_sources,SR),"nom","n")+
+  '<h2>Corrections par l\'IA demandées</h2>'+bars(nm(u.cr_ia,IAK),"nom","n")+'<h2>Documents récupérés</h2>'+bars(nm(u.cr_exports,EX),"nom","n");}
 /* v363 : statistiques d'utilisation (30 derniers jours) */
 function usageBlock(u){if(!u)return '<h2>Utilisation (30 jours)</h2><p class="mu">Pour voir le parcours des utilisateurs : exécute usage.sql dans Supabase.</p>';
  var LAY={P:"Personne + produit",B:"Collage",C:"Vedette",W:"Cadres sur fond",G:"Catalogue",E:"Événement",classique:"Ancien modèle"},
@@ -64,6 +76,7 @@ function usageBlock(u){if(!u)return '<h2>Utilisation (30 jours)</h2><p class="mu
  var P=u.parcours||[],n0=(P[0]&&P[0].n)||0,h='<h2>Parcours « Affiche en 1 geste » (30 jours)</h2>';
  h+=P.length&&n0?P.map(function(x,i){var pc=n0?Math.round(100*x.n/n0):0,prev=i?P[i-1].n:0,lost=i&&prev?Math.round(100*(prev-x.n)/prev):0;return '<div class="row"><span class="k">'+esc(x.etape)+'</span><span class="b"><i style="width:'+pc+'%"></i></span><span class="v">'+x.n+' · '+pc+' %'+(i&&lost>0?' <small style="color:#dc2626">(-'+lost+' %)</small>':'')+'</span></div>';}).join("")+'<p class="mu">Le chiffre rouge montre la part des utilisateurs perdus à chaque étape : c\'est là qu\'il faut simplifier.</p>':'<p class="mu">Pas encore de données : elles arriveront avec la version 363 de l\'application.</p>';
  h+='<h2>Types d\'affiche créés</h2>'+bars(nm(u.types,TY),"nom","n")+'<h2>Modèles choisis</h2>'+bars(nm(u.modeles,LAY),"nom","n")+'<h2>Fonds préférés</h2>'+bars(nm(u.fonds,BG),"nom","n");
+ h+=crBlock(u);
  h+='<h2>Services utilisés (utilisateurs, 30 jours)</h2>'+bars(u.services_30j||[],"nom","n")+'<h2>Utilisateurs actifs par jour (14 j)</h2>'+bars(u.actifs_par_jour||[],"jour","n");
  return h;}
 function bars(a,k,v){var m=Math.max.apply(null,a.map(function(x){return x[v]}).concat([1]));return a.length?a.map(function(x){return '<div class="row"><span class="k">'+esc(x[k]==null?"?":x[k])+'</span><span class="b"><i style="width:'+(100*x[v]/m)+'%"></i></span><span class="v">'+x[v]+'</span></div>'}).join(""):'<p class="mu">Rien pour le moment.</p>'}
@@ -195,14 +208,14 @@ async function vsmp(){
   }
   var keep=L.textContent;await vsmp();if($("vsl"))$("vsl").textContent=keep;};
 }
-var SVK=[["text","Texte automatique (CV, lettre, affiches…)",1],["voix","Voix off",2],["fond","Fond / décor par IA",0],["logo","Symbole de logo par IA",0],["ocr","Extraire le texte (scanner)",0],["doc","Photo → liste de prix / facture",1],["retouche","Retouche photo par IA",0],["bg","Détourage en ligne",0]],SVC=null;
+var SVK=[["text","Texte automatique (CV, lettre, affiches…)",1],["voix","Voix off",2],["fond","Fond / décor par IA",0],["logo","Symbole de logo par IA",0],["ocr","Extraire le texte (scanner)",0],["doc","Photo → liste de prix / facture",1],["retouche","Retouche photo par IA",0],["bg","Détourage en ligne",0],["corr","Correction de documents (par 900 mots)",1],["style","Style professionnel (par 900 mots)",2],["corr_essai","Essai offert de correction (laisser 0 crédit)",0]],SVC=null;
 async function svcPrix(){
  var b=$("svp");if(!b)return;
  var r=await sb.rpc("admin_ia_get");
  if(r.error||!r.data){b.innerHTML='<h2>Prix par service</h2><p class="mu">Non disponible : '+esc(r.error?r.error.message:"vide")+'</p>';return}
  SVC=r.data;var px=SVC.prix||{},lim=SVC.limite||{};setTimeout(function(){if(window.pkUpd)pkUpd()},0);
  var h='<h2>Interrupteur général de l\'IA</h2><label class="chk" style="display:flex;gap:12px;align-items:center;justify-content:flex-start;margin:6px 0;text-align:left"><input type="checkbox" class="swt" id="iaon"'+(SVC.actif===true?' checked':'')+'> IA ouverte aux utilisateurs</label><p class="mu">Éteint = aucun service IA (prix, boutons ✨) n\'apparaît chez les utilisateurs, même si les prix sont réglés. Allume seulement quand la facturation Google est active et que tu as vu une vraie facture.</p><hr><h2>Crédits et prix par service</h2><p class="mu">Combien de crédits chaque usage coûte au client. Interrupteur vert = service ouvert aux clients. Éteint = service fermé (le prix est gardé pour plus tard). Le changement s\'applique à la prochaine ouverture de l\'application du client. Les 2 textes offerts par téléphone ne changent pas.</p>';
- SVK.forEach(function(k){var v=px[k[0]],on=v>0,sh=on?v:(px["m_"+k[0]]||"");h+='<div style="margin:12px 0;padding:10px;border:1px solid #ddd;border-radius:12px"><label class="chk" style="display:flex;gap:12px;align-items:center;justify-content:flex-start;margin:0 0 6px;text-align:left"><input type="checkbox" class="svo swt" data-k="'+k[0]+'"'+(on?' checked':'')+'> <b>'+esc(k[1])+'</b></label><div class="two" style="align-items:end"><div><label class="mu">Crédits</label><input class="svi" data-k="'+k[0]+'" type="number" inputmode="numeric" min="0" max="50" value="'+(sh===""?"":sh)+'" placeholder="'+(k[2]||"")+'"></div><div><label class="mu">Prix pour le client (FCFA)</label><input class="svf" data-k="'+k[0]+'" type="number" inputmode="numeric" min="0" placeholder="—"></div></div><div class="mu" data-sf="'+k[0]+'" style="margin-top:4px"></div></div>'});
+ SVK.forEach(function(k){var v=px[k[0]],on=k[0]==="corr_essai"?v===0:v>0,sh=k[0]==="corr_essai"?0:(on?v:(px["m_"+k[0]]||""));h+='<div style="margin:12px 0;padding:10px;border:1px solid #ddd;border-radius:12px"><label class="chk" style="display:flex;gap:12px;align-items:center;justify-content:flex-start;margin:0 0 6px;text-align:left"><input type="checkbox" class="svo swt" data-k="'+k[0]+'"'+(on?' checked':'')+'> <b>'+esc(k[1])+'</b></label><div class="two" style="align-items:end"><div><label class="mu">Crédits</label><input class="svi" data-k="'+k[0]+'" type="number" inputmode="numeric" min="0" max="50" value="'+(sh===""?"":sh)+'" placeholder="'+(k[2]||"")+'"></div><div><label class="mu">Prix pour le client (FCFA)</label><input class="svf" data-k="'+k[0]+'" type="number" inputmode="numeric" min="0" placeholder="—"></div></div><div class="mu" data-sf="'+k[0]+'" style="margin-top:4px"></div></div>'});
  h+='<p class="mu" id="svpc"></p><button id="svs">Enregistrer les prix des services</button><p class="mu" id="svm"></p><p class="mu">Conseil de départ : texte 1 crédit, voix 2 crédits. Vérifie ta facture Google avant de changer les autres.</p>';
  b.innerHTML=h;
  function ppc(){var m=0;(PK||[]).forEach(function(x){if(x.credits>0&&x.montant>0){var c=x.montant/x.credits;if(!m||c<m)m=c}});return m}
@@ -216,7 +229,7 @@ async function svcPrix(){
  upd();
  $("svs").onclick=async function(){
   var np=Object.assign({},px),ok=true;
-  Array.prototype.forEach.call(b.querySelectorAll(".svi"),function(e){var k=e.dataset.k,on=b.querySelector('.svo[data-k="'+k+'"]').checked;if(e.value===""){if(on)ok=false;return}var v=+e.value;if(!Number.isInteger(v)||v<0||v>50||(on&&v<1)){ok=false;return}if(on){np[k]=v;delete np["m_"+k]}else{np[k]=0;if(v>0)np["m_"+k]=v}});
+  Array.prototype.forEach.call(b.querySelectorAll(".svi"),function(e){var k=e.dataset.k,on=b.querySelector('.svo[data-k="'+k+'"]').checked;if(k==="corr_essai"){if(on){np[k]=0;lim[k]=1;}else{delete np[k];delete lim[k];}return;}if(e.value===""){if(on)ok=false;return}var v=+e.value;if(!Number.isInteger(v)||v<0||v>50||(on&&v<1)){ok=false;return}if(on){np[k]=v;delete np["m_"+k]}else{np[k]=0;if(v>0)np["m_"+k]=v}});
   if(!ok){$("svm").textContent="Vérifie : un service ouvert doit avoir un prix entier de 1 à 50.";return}
   $("svm").textContent="…";var q=await sb.rpc("admin_ia_set",{p_actif:$("iaon").checked,p_prix:np,p_limite:lim});
   $("svm").textContent=q.error?("Erreur : "+q.error.message):"Enregistré ✓ Les clients verront ces prix à leur prochaine ouverture.";if(!q.error){SVC=q.data||SVC;px=np}};
@@ -255,8 +268,8 @@ function drawPk(){
   $("pkm").textContent="Enregistré ✓ Les clients verront ces packs à leur prochaine ouverture."+(named&&!kept?" ⚠ Les prix sont gardés, mais le serveur n'a pas gardé les noms des packs : préviens Claude, il te donnera la petite correction à faire dans Supabase.":"");codeChips();};
 }
 function codeChips(){var z=$("cpk");if(!z)return;var L=(PK||[]).filter(function(x){return x.credits>0});if(!L.length){z.innerHTML="";return}
- z.innerHTML='<label class="mu">Choisir un pack</label><div style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px">'+L.map(function(x,i){return '<button class="sec" data-cp="'+x.credits+'" style="padding:8px 10px;margin:0">'+esc(x.nom||"Pack")+' · '+x.credits+' cr</button>'}).join("")+'</div>';
- Array.prototype.forEach.call(z.querySelectorAll("[data-cp]"),function(b){b.onclick=function(){$("cc").value=b.dataset.cp;Array.prototype.forEach.call(z.querySelectorAll("[data-cp]"),function(o){o.style.outline=o===b?"2px solid #14b8a6":""})}});}
+ z.innerHTML='<label class="mu">Choisir un pack</label><div style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px">'+L.map(function(x,i){return '<button class="sec" data-cp="'+x.credits+'" data-cm="'+(x.montant||0)+'" data-cn="'+esc(x.nom||"Pack")+'" style="padding:8px 10px;margin:0">'+esc(x.nom||"Pack")+' · '+x.credits+' cr</button>'}).join("")+'</div>';
+ Array.prototype.forEach.call(z.querySelectorAll("[data-cp]"),function(b){b.onclick=function(){$("cc").value=b.dataset.cp;if($("cf"))$("cf").value=b.dataset.cm||"";if($("cpn"))$("cpn").value=b.dataset.cn||"";Array.prototype.forEach.call(z.querySelectorAll("[data-cp]"),function(o){o.style.outline=o===b?"2px solid #14b8a6":""})}});}
 
 function ntfAdmin(){var b=$("ntfa");if(!b)return;
  b.innerHTML='<h2>Notifications</h2><p class="mu">Envoie un message sur le téléphone de tous les utilisateurs qui ont accepté les notifications. 1 à 2 par semaine au maximum, sinon ils les désactivent.</p><p class="mu" id="nt_n">Abonnés : …</p><label class="mu">Titre (court)</label><input id="nt_t" maxlength="60" placeholder="Ex : 🌙 Modèles de Tabaski"><label class="mu">Message</label><textarea id="nt_b" maxlength="180" rows="3" style="display:block;width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:12px;border-radius:12px;border:1px solid #2a4a44;background:#13302b;color:inherit;margin:4px 0 10px" placeholder="Ex : Crée ton affiche de Tabaski en 1 geste !"></textarea><label class="mu">Ouvrir à l\'appui</label><select id="nt_u" style="display:block;width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:12px;border-radius:12px;border:1px solid #2a4a44;background:#13302b;color:inherit;margin:4px 0 10px"><option value="./">Accueil</option><option value="./?go=qk">Affiche en 1 geste</option><option value="./?go=facture">Facture</option><option value="./?go=scanner">Scanner</option></select><button id="nt_s">Envoyer à tous</button><p class="mu" id="nt_m"></p>';
@@ -316,7 +329,10 @@ $("cg").onclick=async function(){
  var n=parseInt($("cn").value,10),c=parseInt($("cc").value,10);
  if(!(n>=1&&n<=200)||!(c>=1&&c<=100000)){$("cm").className="msg";$("cm").textContent="Nombre : 1 à 200. Crédits : 1 à 100000.";return}
  $("cm").className="msg";$("cm").textContent="…";$("cg").disabled=true;
- var r=await sb.rpc("admin_ia_gen",{p_n:n,p_credits:c});$("cg").disabled=false;
+ var mt=parseInt(($("cf")||{}).value,10)||0,of=!!($("cof")&&$("cof").checked),pn=(($("cpn")||{}).value||"").trim();
+ if(!of&&!mt){$("cg").disabled=false;$("cm").textContent="Indique le prix payé (FCFA), ou coche « Code offert ».";return}
+ var r=await sb.rpc("admin_ia_gen2",{p_n:n,p_credits:c,p_montant:mt,p_pack:pn,p_offert:of});
+ if(r.error&&/admin_ia_gen2/.test(r.error.message))r=await sb.rpc("admin_ia_gen",{p_n:n,p_credits:c});$("cg").disabled=false;
  if(r.error){$("cm").textContent=/refuse/.test(r.error.message)?"Ce compte n'est pas administrateur.":"Erreur : "+r.error.message;return}
  CODES=r.data||[];codes();$("cm").className="ok";$("cm").textContent=CODES.length+" code(s) créé(s), "+c+" crédits chacun.";
  $("cl").innerHTML=CODES.map(function(x,i){return '<div class="cd" style="flex-wrap:wrap"><span>'+esc(x)+'</span><button class="sec" data-l="Copier" data-c="'+esc(x)+'">Copier</button><button class="sec" data-sm="'+i+'">📱 Envoyer</button><div data-sb="'+i+'" class="hid" style="width:100%;margin-top:8px"><div style="display:flex;gap:8px"><input data-sp="'+i+'" type="tel" inputmode="tel" placeholder="Numéro du client (ex : 70 00 00 00)" style="flex:1;min-width:0">'+(navigator.contacts&&navigator.contacts.select?'<button class="sec" data-ct="'+i+'" style="margin:0;padding:0 14px" title="Choisir dans mes contacts">📇</button>':'')+'</div><div class="two" style="margin-top:8px"><button data-sw="'+i+'" style="margin:0;background:#16a34a;color:#fff">💬 WhatsApp</button><button class="sec" data-ss="'+i+'" style="margin:0">📱 SMS</button></div><div class="mu" data-sr="'+i+'"></div></div></div>'}).join("");
@@ -339,7 +355,41 @@ async function smsCode(code,cr,tel,btn,out){var t=String(tel||"").replace(/\D/g,
   out.textContent="✅ SMS envoyé au "+t+".";}catch(x){btn.disabled=false;out.textContent="❌ Erreur réseau.";}}
 boot();codes();
 
-function tab(n){$("body").classList.toggle("hid",n!=1);$("us").classList.toggle("hid",n!=3);$("cr").classList.toggle("hid",n!=2);$("pr").classList.toggle("hid",n!=4);$("t1").classList.toggle("on",n==1);$("t3").classList.toggle("on",n==3);$("t2").classList.toggle("on",n==2);$("t4").classList.toggle("on",n==4);if(n==2){codes();if(PK&&PK.length)codeChips();else packs();}if(n==4){svcPrix();packs();ntfAdmin();vsmp();}window.scrollTo(0,0)}
-$("t1").onclick=function(){tab(1)};$("t3").onclick=function(){tab(3)};$("t2").onclick=function(){tab(2)};$("t4").onclick=function(){tab(4)};tab(1);
+
+/* v370 : statistiques financières */
+var FP={k:"30"};
+function fF(n){return String(Math.round(n||0)).replace(/\B(?=(\d{3})+(?!\d))/g," ")+" F";}
+function fRange(k){var t=new Date(),d=function(x){return x.toISOString().slice(0,10)},a=new Date(t),b=new Date(t);
+ if(k==="7")a.setDate(t.getDate()-6);else if(k==="30")a.setDate(t.getDate()-29);else if(k==="m")a=new Date(t.getFullYear(),t.getMonth(),1);
+ else if(k==="mp"){a=new Date(t.getFullYear(),t.getMonth()-1,1);b=new Date(t.getFullYear(),t.getMonth(),0);}else if(k==="a")a=new Date(t.getFullYear(),0,1);
+ else if(k==="c")return [FP.d0||d(new Date(t.getTime()-29*864e5)),FP.d1||d(t)];
+ var o=function(x){return new Date(x.getTime()-x.getTimezoneOffset()*6e4)};return [d(o(a)),d(o(b))];}
+async function fin(){var z=$("fi"),R=fRange(FP.k);
+ var P=[["7","7 jours"],["30","30 jours"],["m","Ce mois"],["mp","Mois dernier"],["a","Cette année"],["c","Dates…"]];
+ var h='<h2>Période</h2><div style="display:flex;flex-wrap:wrap;gap:6px">'+P.map(function(x){return '<button class="sec'+(FP.k===x[0]?' on':'')+'" data-fp="'+x[0]+'" style="margin:0;padding:8px 12px">'+x[1]+'</button>'}).join("")+'</div>';
+ if(FP.k==="c")h+='<div class="two" style="margin-top:8px"><div><label class="mu">Du</label><input id="fd0" type="date" value="'+R[0]+'"></div><div><label class="mu">Au</label><input id="fd1" type="date" value="'+R[1]+'"></div></div><button class="sec" id="fgo">Afficher</button>';
+ z.innerHTML=h+'<p class="mu">Chargement…</p>';bindP();
+ var r=await sb.rpc("admin_finance",{p_debut:R[0],p_fin:R[1]});
+ if(r.error){z.innerHTML=h+'<p class="msg">'+(/admin_finance/.test(r.error.message)?'Exécute d\'abord le fichier finance.sql dans Supabase.':'Erreur : '+esc(r.error.message))+'</p>';bindP();return}
+ var f=r.data,dd=function(x){return new Date(x+"T00:00").toLocaleDateString("fr-FR")};
+ h+='<p class="mu">Du <b>'+dd(f.debut)+'</b> au <b>'+dd(f.fin)+'</b></p>';
+ h+='<div class="grid"><div class="hero"><div class="n">'+fF(f.ca)+'</div><div class="l">Chiffre d\'affaires</div></div><div class="hero"><div class="n">'+f.nb+'</div><div class="l">Paiements</div></div></div>';
+ h+='<div class="grid" style="margin-top:10px"><div class="c"><div class="n">'+fF(f.panier)+'</div><div class="l">Panier moyen</div></div><div class="c"><div class="n">'+f.clients+'</div><div class="l">Clients payants identifiés</div></div><div class="c"><div class="n">'+f.credits_vendus+'</div><div class="l">Crédits vendus</div></div><div class="c"><div class="n">'+f.credits_consommes+'</div><div class="l">Crédits utilisés</div></div><div class="c"><div class="n">'+f.credits_rendus+'</div><div class="l">Crédits rendus (erreurs IA)</div></div><div class="c"><div class="n">'+f.credits_offerts+'</div><div class="l">Crédits offerts ('+f.codes_offerts+' code'+(f.codes_offerts>1?'s':'')+')</div></div></div>';
+ h+='<div class="grid" style="margin-top:10px"><div class="c"><div class="n">'+f.codes_actives+'</div><div class="l">Codes vendus déjà activés</div></div><div class="c"><div class="n">'+f.codes_attente+'</div><div class="l">Codes vendus pas encore activés</div></div></div>';
+ var pj=f.par_jour||[],mx=Math.max.apply(null,pj.map(function(x){return x.ca}).concat([1]));
+ h+='<h2>Chiffre d\'affaires par jour</h2>'+(pj.length?'<div class="days">'+pj.map(function(x){return '<i title="'+x.jour+' : '+fF(x.ca)+' ('+x.n+')" style="height:'+(100*x.ca/mx)+'%"></i>'}).join("")+'</div><p class="mu">'+pj.map(function(x){return dd(x.jour).slice(0,5)+' : '+fF(x.ca)}).slice(-7).join(" · ")+'</p>':'<p class="mu">Aucune vente sur cette période.</p>');
+ var cf=function(a,k){return (a||[]).map(function(x){return {nom:x.nom,v:x[k],t:k==="ca"?fF(x[k])+" ("+x.n+")":x[k]+" cr. ("+x.n+")"}})};
+ function bar2(a){var m=Math.max.apply(null,a.map(function(x){return x.v}).concat([1]));return a.length?a.map(function(x){return '<div class="row"><span class="k">'+esc(x.nom)+'</span><span class="b"><i style="width:'+(100*x.v/m)+'%"></i></span><span class="v">'+esc(x.t)+'</span></div>'}).join(""):'<p class="mu">Rien sur cette période.</p>'}
+ var SVN={text:"Texte",voix:"Voix off",fond:"Fond IA",logo:"Logo IA",ocr:"Lecture de texte",doc:"Photo → liste",retouche:"Retouche photo",bg:"Détourage",corr:"Correction (grammaire)",style:"Correction (style)",corr_essai:"Essai de correction",clip:"Clip"};
+ h+='<h2>Ventes par pack</h2>'+bar2(cf(f.par_pack,"ca"))+'<h2>Ventes par moyen de paiement</h2>'+bar2(cf(f.par_canal,"ca"))+'<h2>Crédits utilisés par service</h2>'+bar2(cf((f.par_service||[]).map(function(x){return {nom:SVN[x.nom]||x.nom,credits:x.credits,n:x.n}}),"credits"));
+ h+='<h2>Aujourd\'hui</h2><div class="grid"><div class="c"><div class="n">'+f.solde_clients+'</div><div class="l">Crédits non utilisés chez les clients</div></div><div class="c"><div class="n">'+f.abonnes_actifs+'</div><div class="l">Abonnements actifs</div></div><div class="c"><div class="n">'+f.codes_dispo+'</div><div class="l">Codes non utilisés</div></div><div class="c"><div class="n">'+fF(f.valeur_codes_dispo)+'</div><div class="l">Valeur des codes non utilisés</div></div></div>';
+ var L=f.liste||[];h+='<h2>Dernières ventes</h2>'+(L.length?L.slice(0,40).map(function(x){return '<div class="cd" style="font:14px/1.4 system-ui,sans-serif"><span style="flex:1">'+esc(new Date(x.at).toLocaleString("fr-FR"))+' · <b>'+fF(x.montant)+'</b> · '+x.credits+' cr.<br><span class="mu">'+esc(x.pack)+' · '+esc(x.canal)+(x.canal.indexOf("Code")===0?(x.active?' · activé':' · pas encore activé'):'')+'</span></span></div>'}).join(""):'<p class="mu">Aucune vente.</p>');
+ h+='<button class="sec" id="fcsv" style="margin-top:10px">Exporter en CSV (Excel)</button><p class="mu">Le chiffre d\'affaires compte les codes créés avec un prix payé, et plus tard les paiements Mobile Money automatiques. Les codes offerts ne comptent pas.</p>';
+ z.innerHTML=h;bindP();
+ $("fcsv").onclick=function(){var rows=[["date","montant_FCFA","credits","pack","moyen","reference","active"]];L.forEach(function(x){rows.push([x.at,x.montant,x.credits,x.pack,x.canal,x.ref||"",x.active?"oui":"non"])});
+  rows.push([]);rows.push(["total",f.ca,f.credits_vendus,"","","",""]);var b=new Blob(["﻿"+rows.map(function(a){return a.map(function(v){return '"'+String(v==null?"":v).replace(/"/g,'""')+'"'}).join(";")}).join("\n")],{type:"text/csv"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="finances_"+f.debut+"_"+f.fin+".csv";a.click();};
+ function bindP(){Array.prototype.forEach.call(z.querySelectorAll("[data-fp]"),function(b){b.onclick=function(){FP.k=b.dataset.fp;fin()}});var g=$("fgo");if(g)g.onclick=function(){FP.d0=$("fd0").value;FP.d1=$("fd1").value;if(FP.d0&&FP.d1&&FP.d0<=FP.d1)fin();};}}
+function tab(n){$("fi").classList.toggle("hid",n!=5);$("t5").classList.toggle("on",n==5);if(n==5)fin();$("body").classList.toggle("hid",n!=1);$("us").classList.toggle("hid",n!=3);$("cr").classList.toggle("hid",n!=2);$("pr").classList.toggle("hid",n!=4);$("t1").classList.toggle("on",n==1);$("t3").classList.toggle("on",n==3);$("t2").classList.toggle("on",n==2);$("t4").classList.toggle("on",n==4);if(n==2){codes();if(PK&&PK.length)codeChips();else packs();}if(n==4){svcPrix();packs();ntfAdmin();vsmp();}window.scrollTo(0,0)}
+$("t1").onclick=function(){tab(1)};$("t3").onclick=function(){tab(3)};$("t2").onclick=function(){tab(2)};$("t4").onclick=function(){tab(4)};$("t5").onclick=function(){tab(5)};tab(1);
 try{if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js");}catch(e){}
 </script></body></html>
