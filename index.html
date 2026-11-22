@@ -55,6 +55,17 @@ button{background:var(--ac);color:#062925;font-weight:700;border:0;cursor:pointe
 var URL_="https://segdgrecoreoqvrqwavj.supabase.co",KEY="sb_publishable_D7vXRASIe4twImyViuzW-A_d3JCvRl8";
 var sb=supabase.createClient(URL_,KEY),$=function(i){return document.getElementById(i)};
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+/* v363 : statistiques d'utilisation (30 derniers jours) */
+function usageBlock(u){if(!u)return '<h2>Utilisation (30 jours)</h2><p class="mu">Pour voir le parcours des utilisateurs : exécute usage.sql dans Supabase.</p>';
+ var LAY={P:"Personne + produit",B:"Collage",C:"Vedette",W:"Cadres sur fond",G:"Catalogue",E:"Événement",classique:"Ancien modèle"},
+  BG={photo:"Ta photo en fond",px:"Fond Pixabay",flou:"Photo floutée",ardoise:"Ardoise",bois:"Bois",carreaux:"Carrelage",feuilles:"Wax feuilles",wax:"Wax cercles",kente:"Kenté",danfani:"Faso Dan Fani",bogolan:"Bogolan",losanges:"Losanges",eventails:"Wax éventails",motifs:"Motifs du métier",marbre:"Marbre",ballons:"Ballons",etoiles:"Étoiles",pastel:"Pastel",fleurs:"Fleurs",or:"Or",coeurs:"Cœurs",bougie:"Bougies",ciel:"Ciel",sobre:"Sobre"},
+  TY={pub:"Publicité",statut:"Statut WhatsApp",flyer:"Flyer",bapteme:"Baptême",mariage:"Mariage",deces:"Décès"};
+ function nm(a,M){return (a||[]).map(function(x){var k=String(x.nom||""),p=k.split(" ");return {nom:(M[p[0]]||p[0])+(p[1]?" ("+p[1]+")":""),n:x.n};});}
+ var P=u.parcours||[],n0=(P[0]&&P[0].n)||0,h='<h2>Parcours « Affiche en 1 geste » (30 jours)</h2>';
+ h+=P.length&&n0?P.map(function(x,i){var pc=n0?Math.round(100*x.n/n0):0,prev=i?P[i-1].n:0,lost=i&&prev?Math.round(100*(prev-x.n)/prev):0;return '<div class="row"><span class="k">'+esc(x.etape)+'</span><span class="b"><i style="width:'+pc+'%"></i></span><span class="v">'+x.n+' · '+pc+' %'+(i&&lost>0?' <small style="color:#dc2626">(-'+lost+' %)</small>':'')+'</span></div>';}).join("")+'<p class="mu">Le chiffre rouge montre la part des utilisateurs perdus à chaque étape : c\'est là qu\'il faut simplifier.</p>':'<p class="mu">Pas encore de données : elles arriveront avec la version 363 de l\'application.</p>';
+ h+='<h2>Types d\'affiche créés</h2>'+bars(nm(u.types,TY),"nom","n")+'<h2>Modèles choisis</h2>'+bars(nm(u.modeles,LAY),"nom","n")+'<h2>Fonds préférés</h2>'+bars(nm(u.fonds,BG),"nom","n");
+ h+='<h2>Services utilisés (utilisateurs, 30 jours)</h2>'+bars(u.services_30j||[],"nom","n")+'<h2>Utilisateurs actifs par jour (14 j)</h2>'+bars(u.actifs_par_jour||[],"jour","n");
+ return h;}
 function bars(a,k,v){var m=Math.max.apply(null,a.map(function(x){return x[v]}).concat([1]));return a.length?a.map(function(x){return '<div class="row"><span class="k">'+esc(x[k]==null?"?":x[k])+'</span><span class="b"><i style="width:'+(100*x[v]/m)+'%"></i></span><span class="v">'+x[v]+'</span></div>'}).join(""):'<p class="mu">Rien pour le moment.</p>'}
 function show(w){$("login").className=w=="l"?"":"hid";$("dash").className=w=="d"?"":"hid"}
 function devUI(dv){
@@ -102,6 +113,7 @@ async function load(){
  var r3=await sb.rpc("admin_devices"),dv=r3.error?null:r3.data;
  var r4=await sb.rpc("admin_countries"),pc=r4.error?null:r4.data;
  var r5=await sb.rpc("admin_alerts"),al=r5.error?null:r5.data;
+ var r6=await sb.rpc("admin_usage"),us6=r6.error?null:r6.data;
  var goal=+(function(){try{return localStorage.getItem('goal')}catch(e){return 0}})()||1000;
  var nj=s.nouveaux_par_jour,mx=Math.max.apply(null,nj.map(function(x){return x.n}).concat([1]));
  $("body").innerHTML=alertsBlock(al)+controlBlock(al)+
@@ -115,6 +127,7 @@ async function load(){
  '<div class="c"><div class="n">'+s.exports+'</div><div class="l">Exports (total)</div></div>'+
  '<div class="c"><div class="n">'+s.exports_7j+'</div><div class="l">Exports 7 jours</div></div></div>'+
  (s2?'<div class="grid" style="margin-top:10px"><div class="c"><div class="n">'+s2.nouveaux_7j+'</div><div class="l">Nouveaux 7 jours</div></div><div class="c"><div class="n">'+s2.nouveaux_30j+'</div><div class="l">Nouveaux 30 jours</div></div><div class="c"><div class="n">'+(s.total?Math.round(100*s2.revenus/s.total):0)+' %</div><div class="l">Reviennent après le 1er jour</div></div><div class="c"><div class="n">'+(s2.anciens_7j?Math.round(100*s2.revenus_7j/s2.anciens_7j):0)+' %</div><div class="l">Anciens encore actifs (7 j)</div></div></div>':'<p class="mu">Pour voir fidélité et exports par jour : exécute admin2.sql dans Supabase.</p>')+
+ usageBlock(us6)+
  '<h2>Services les plus utilisés</h2>'+bars(s.services,"nom","n")+
  (s2?'<h2>Services (7 derniers jours)</h2>'+bars(s2.services_7j,'nom','n')+'<h2>Formats exportés</h2>'+bars(s2.formats,'nom','n')+'<h2>Exports par jour (14 j)</h2>'+bars(s2.exports_par_jour,'jour','n'):'')+
  '<h2>Téléchargements par version</h2>'+(dl?(dl.list.length?bars(dl.list,'v','n'):'<p class="mu">Aucun téléchargement depuis la remise à zéro.</p>'):'<p class="mu">GitHub indisponible.</p>')+
