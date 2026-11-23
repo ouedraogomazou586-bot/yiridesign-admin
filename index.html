@@ -67,6 +67,14 @@ function crBlock(u){if(!u.correction)return '<h2>Correction de documents</h2><p 
  return '<h2>📝 Correction de documents (30 jours)</h2>'+funnel(u.correction,'Fautes trouvées en moyenne par document : <b>'+(u.cr_fautes||0)+'</b>.')+
   '<h2>Types de documents corrigés</h2>'+bars(nm(u.cr_types,TY),"nom","n")+'<h2>Comment le document est ajouté</h2>'+bars(nm(u.cr_sources,SR),"nom","n")+
   '<h2>Corrections par l\'IA demandées</h2>'+bars(nm(u.cr_ia,IAK),"nom","n")+'<h2>Documents récupérés</h2>'+bars(nm(u.cr_exports,EX),"nom","n");}
+function factBlock(u){if(!u)return '<h2>🧾 Factures (30 jours)</h2><p class="mu">Exécute facture.sql dans Supabase pour voir ces chiffres.</p>';
+ var TY={Facture:"Factures","Reçu":"Reçus",Devis:"Devis"},EN={whatsapp:"WhatsApp (image)",pdf:"PDF",ticket:"Ticket imprimante",serie_pdf:"PDF de série",guide:"Envoi guidé (message)",relance:"Relance d'impayé"};
+ function nm(a,M){return (a||[]).map(function(x){return {nom:M[x.nom]||x.nom,n:x.n};});}var V=u.ventes||{};
+ return '<h2>🧾 Caisse rapide (30 jours)</h2>'+funnel(u.parcours||[],'Factures validées à la caisse : <b>'+(u.factures||0)+'</b>.')
+  +'<h2>📑 Factures en série</h2><p>'+(u.serie_users||0)+' utilisateur(s) · <b>'+(u.serie_factures||0)+'</b> factures créées en série.</p>'
+  +'<h2>Documents créés à la caisse</h2>'+bars(nm(u.types,TY),"nom","n")+'<h2>Comment les factures sont envoyées</h2>'+bars(nm(u.envois,EN),"nom","n")
+  +(u.affiche?'<h2>🎨 Affiche en 1 geste (30 jours)</h2>'+funnel(u.affiche,'Packs / lots d\'affiches créés : <b>'+(u.aff_lots||0)+'</b>.')+'<h2>Types d\'affiche choisis</h2>'+bars(nm(u.aff_types,{promo:"Promo / produits",resto:"Restaurant / menu",mariage:"Mariage",bapteme:"Baptême, naissance, anniversaire",deces:"Décès",event:"Soirée, concert, église"}),"nom","n")+'<h2>Modèles préférés</h2>'+bars(u.aff_modeles||[],"nom","n"):'')
+  +'<h2>📚 Mes ventes</h2><p>Relances lancées : <b>'+(V.relances||0)+'</b> · Exports Excel : <b>'+(V.excel||0)+'</b> · Changements payé / impayé : <b>'+(V.paye||0)+'</b></p>';}
 /* v363 : statistiques d'utilisation (30 derniers jours) */
 function usageBlock(u){if(!u)return '<h2>Utilisation (30 jours)</h2><p class="mu">Pour voir le parcours des utilisateurs : exécute usage.sql dans Supabase.</p>';
  var LAY={P:"Personne + produit",B:"Collage",C:"Vedette",W:"Cadres sur fond",G:"Catalogue",E:"Événement",classique:"Ancien modèle"},
@@ -77,6 +85,7 @@ function usageBlock(u){if(!u)return '<h2>Utilisation (30 jours)</h2><p class="mu
  h+=P.length&&n0?P.map(function(x,i){var pc=n0?Math.round(100*x.n/n0):0,prev=i?P[i-1].n:0,lost=i&&prev?Math.round(100*(prev-x.n)/prev):0;return '<div class="row"><span class="k">'+esc(x.etape)+'</span><span class="b"><i style="width:'+pc+'%"></i></span><span class="v">'+x.n+' · '+pc+' %'+(i&&lost>0?' <small style="color:#dc2626">(-'+lost+' %)</small>':'')+'</span></div>';}).join("")+'<p class="mu">Le chiffre rouge montre la part des utilisateurs perdus à chaque étape : c\'est là qu\'il faut simplifier.</p>':'<p class="mu">Pas encore de données : elles arriveront avec la version 363 de l\'application.</p>';
  h+='<h2>Types d\'affiche créés</h2>'+bars(nm(u.types,TY),"nom","n")+'<h2>Modèles choisis</h2>'+bars(nm(u.modeles,LAY),"nom","n")+'<h2>Fonds préférés</h2>'+bars(nm(u.fonds,BG),"nom","n");
  h+=crBlock(u);
+ h+=factBlock(window.UFACT);
  h+='<h2>Services utilisés (utilisateurs, 30 jours)</h2>'+bars(u.services_30j||[],"nom","n")+'<h2>Utilisateurs actifs par jour (14 j)</h2>'+bars(u.actifs_par_jour||[],"jour","n");
  return h;}
 function bars(a,k,v){var m=Math.max.apply(null,a.map(function(x){return x[v]}).concat([1]));return a.length?a.map(function(x){return '<div class="row"><span class="k">'+esc(x[k]==null?"?":x[k])+'</span><span class="b"><i style="width:'+(100*x[v]/m)+'%"></i></span><span class="v">'+x[v]+'</span></div>'}).join(""):'<p class="mu">Rien pour le moment.</p>'}
@@ -127,6 +136,7 @@ async function load(){
  var r4=await sb.rpc("admin_countries"),pc=r4.error?null:r4.data;
  var r5=await sb.rpc("admin_alerts"),al=r5.error?null:r5.data;
  var r6=await sb.rpc("admin_usage"),us6=r6.error?null:r6.data;
+ var r7=await sb.rpc("admin_usage_fact");window.UFACT=r7.error?null:r7.data;
  var goal=+(function(){try{return localStorage.getItem('goal')}catch(e){return 0}})()||1000;
  var nj=s.nouveaux_par_jour,mx=Math.max.apply(null,nj.map(function(x){return x.n}).concat([1]));
  $("body").innerHTML=alertsBlock(al)+controlBlock(al)+
