@@ -40,7 +40,7 @@ button{background:var(--ac);color:#062925;font-weight:700;border:0;cursor:pointe
  <div id="body"><p class="mu">Chargement…</p></div>
 <div id="us" class="hid"></div>
 <div id="fi" class="hid"></div>
-<div id="pr" class="hid"><div id="svp"></div><div id="pk"></div><div id="ntfa"></div><div id="vsx"></div></div>
+<div id="pr" class="hid"><div id="svp"></div><div id="prm"></div><div id="pk"></div><div id="ntfa"></div><div id="vsx"></div></div>
 <div id="cr" class="hid"><div id="stk"></div><h2>Codes de recharge</h2>
  <p class="mu">Crée des codes à vendre ou offrir au client. Chaque code donne des crédits IA.</p>
  <div id="cpk"></div><div class="two"><div><label class="mu">Nombre de codes</label><input id="cn" type="number" inputmode="numeric" min="1" max="200" value="1"></div>
@@ -208,7 +208,7 @@ async function vsmp(){
   }
   var keep=L.textContent;await vsmp();if($("vsl"))$("vsl").textContent=keep;};
 }
-var SVK=[["text","Texte automatique (CV, lettre, affiches…)",1],["voix","Voix off",2],["fond","Fond / décor par IA",0],["logo","Symbole de logo par IA",0],["ocr","Extraire le texte (scanner)",0],["doc","Photo → liste de prix / facture",1],["retouche","Retouche photo par IA",0],["bg","Détourage en ligne",0],["corr","Correction de documents (par 900 mots)",1],["style","Style professionnel (par 900 mots)",2],["corr_essai","Essai offert de correction (laisser 0 crédit)",0]],SVC=null;
+var SVK=[["text","Texte automatique (CV, lettre, affiches…)",1],["voix","Voix off",2],["fond","Fond / décor par IA",0],["logo","Symbole de logo par IA",0],["ocr","Extraire le texte (scanner)",0],["doc","Photo → liste de prix / facture",1],["retouche","Retouche photo par IA",0],["bg","Détourage en ligne",0],["corr","Correction de documents — prix PAR PAGE (250 mots)",1],["style","Style professionnel — prix PAR PAGE (250 mots)",2],["corr_essai","Essai offert de correction (laisser 0 crédit)",0]],SVC=null;
 async function svcPrix(){
  var b=$("svp");if(!b)return;
  var r=await sb.rpc("admin_ia_get");
@@ -216,7 +216,7 @@ async function svcPrix(){
  SVC=r.data;var px=SVC.prix||{},lim=SVC.limite||{};setTimeout(function(){if(window.pkUpd)pkUpd()},0);
  var h='<h2>Interrupteur général de l\'IA</h2><label class="chk" style="display:flex;gap:12px;align-items:center;justify-content:flex-start;margin:6px 0;text-align:left"><input type="checkbox" class="swt" id="iaon"'+(SVC.actif===true?' checked':'')+'> IA ouverte aux utilisateurs</label><p class="mu">Éteint = aucun service IA (prix, boutons ✨) n\'apparaît chez les utilisateurs, même si les prix sont réglés. Allume seulement quand la facturation Google est active et que tu as vu une vraie facture.</p><hr><h2>Crédits et prix par service</h2><p class="mu">Combien de crédits chaque usage coûte au client. Interrupteur vert = service ouvert aux clients. Éteint = service fermé (le prix est gardé pour plus tard). Le changement s\'applique à la prochaine ouverture de l\'application du client. Les 2 textes offerts par téléphone ne changent pas.</p>';
  SVK.forEach(function(k){var v=px[k[0]],on=k[0]==="corr_essai"?v===0:v>0,sh=k[0]==="corr_essai"?0:(on?v:(px["m_"+k[0]]||""));h+='<div style="margin:12px 0;padding:10px;border:1px solid #ddd;border-radius:12px"><label class="chk" style="display:flex;gap:12px;align-items:center;justify-content:flex-start;margin:0 0 6px;text-align:left"><input type="checkbox" class="svo swt" data-k="'+k[0]+'"'+(on?' checked':'')+'> <b>'+esc(k[1])+'</b></label><div class="two" style="align-items:end"><div><label class="mu">Crédits</label><input class="svi" data-k="'+k[0]+'" type="number" inputmode="numeric" min="0" max="50" value="'+(sh===""?"":sh)+'" placeholder="'+(k[2]||"")+'"></div><div><label class="mu">Prix pour le client (FCFA)</label><input class="svf" data-k="'+k[0]+'" type="number" inputmode="numeric" min="0" placeholder="—"></div></div><div class="mu" data-sf="'+k[0]+'" style="margin-top:4px"></div></div>'});
- h+='<p class="mu" id="svpc"></p><button id="svs">Enregistrer les prix des services</button><p class="mu" id="svm"></p><p class="mu">Conseil de départ : texte 1 crédit, voix 2 crédits. Vérifie ta facture Google avant de changer les autres.</p>';
+ h+='<p class="mu" id="svpc"></p><button id="svs">Enregistrer les prix des services</button><p class="mu" id="svm"></p><p class="mu">Conseil de départ : texte 1 crédit, voix 2 crédits. Vérifie ta facture Google avant de changer les autres. Correction de documents : le prix est <b>par page de 250 mots</b> (conseil : 1 crédit la page, style 2 crédits la page). Le client paie exactement le nombre de pages de son document.</p>';
  b.innerHTML=h;
  function ppc(){var m=0;(PK||[]).forEach(function(x){if(x.credits>0&&x.montant>0){var c=x.montant/x.credits;if(!m||c<m)m=c}});return m}
  function q(c,k){return b.querySelector('.'+c+'[data-k="'+k+'"]')}
@@ -231,11 +231,45 @@ async function svcPrix(){
   var np=Object.assign({},px),ok=true;
   Array.prototype.forEach.call(b.querySelectorAll(".svi"),function(e){var k=e.dataset.k,on=b.querySelector('.svo[data-k="'+k+'"]').checked;if(k==="corr_essai"){if(on){np[k]=0;lim[k]=1;}else{delete np[k];delete lim[k];}return;}if(e.value===""){if(on)ok=false;return}var v=+e.value;if(!Number.isInteger(v)||v<0||v>50||(on&&v<1)){ok=false;return}if(on){np[k]=v;delete np["m_"+k]}else{np[k]=0;if(v>0)np["m_"+k]=v}});
   if(!ok){$("svm").textContent="Vérifie : un service ouvert doit avoir un prix entier de 1 à 50.";return}
+ pageSet(np);
   $("svm").textContent="…";var q=await sb.rpc("admin_ia_set",{p_actif:$("iaon").checked,p_prix:np,p_limite:lim});
   $("svm").textContent=q.error?("Erreur : "+q.error.message):"Enregistré ✓ Les clients verront ces prix à leur prochaine ouverture.";if(!q.error){SVC=q.data||SVC;px=np}};
 }
+
+/* v372 : promo de lancement + pack étudiant */
+var PROMO={actif:false,pct:50,debut:"",fin:"",titre:"Promo rapports de stage"};
+function promoOn(){var t=new Date().toISOString().slice(0,10);return !!(PROMO.actif&&(!PROMO.fin||t<=PROMO.fin)&&(!PROMO.debut||t>=PROMO.debut));}
+/* prix des parties de 1 à 4 pages, avec la réduction si la promo est en cours */
+function pageSet(np){var f=promoOn()?(1-(+PROMO.pct||0)/100):1;["corr","style"].forEach(function(k){for(var n=1;n<=4;n++){np[k+n]=np[k]>0?Math.max(1,Math.round(np[k]*n*f)):0;delete np["m_"+k+n];}});return np;}
+async function pricesApply(){var r=await sb.rpc("admin_ia_get");if(r.error)return r.error.message;var c=r.data||{},np=pageSet(Object.assign({},c.prix||{}));
+ var q=await sb.rpc("admin_ia_set",{p_actif:!!c.actif,p_prix:np,p_limite:c.limite||{}});if(!q.error){SVC=q.data||SVC;}return q.error?q.error.message:"";}
+async function promoAdmin(){var b=$("prm");if(!b)return;var r=await sb.rpc("admin_promo_get");
+ if(r.error){b.innerHTML='<h2>🎓 Promo de lancement</h2><p class="mu">'+(/admin_promo_get/.test(r.error.message)?'Exécute d\'abord le fichier promo.sql dans Supabase.':'Erreur : '+esc(r.error.message))+'</p>';return}
+ PROMO=Object.assign({actif:false,pct:50,debut:"",fin:"",titre:"Promo rapports de stage"},r.data||{});
+ var t=new Date().toISOString().slice(0,10),fini=PROMO.actif&&PROMO.fin&&t>PROMO.fin;
+ if(fini){PROMO.actif=false;await sb.rpc("admin_config_set",{p_key:"promo",p_value:PROMO});await pricesApply();}
+ var page=+((SVC&&SVC.prix&&SVC.prix.corr)||0);
+ b.innerHTML='<h2>🎓 Promo de lancement</h2><p class="mu">Réduction sur la correction de documents (grammaire et style), par exemple pendant la période des rapports de stage. Les clients voient un bandeau « Promo » et l\'ancien prix barré.</p>'+(fini?'<p class="msg">La promo est terminée depuis le '+esc(PROMO.fin)+' : elle a été arrêtée et les prix normaux sont revenus.</p>':'')+
+  '<label class="chk" style="display:flex;gap:12px;align-items:center;justify-content:flex-start;text-align:left"><input type="checkbox" class="swt" id="pmon"'+(PROMO.actif?' checked':'')+'> <b>Promo active</b></label>'+
+  '<label class="mu">Nom affiché</label><input id="pmt" maxlength="40" value="'+esc(PROMO.titre||"")+'">'+
+  '<label class="mu">Réduction</label><select id="pmp" style="width:100%">'+[25,50].map(function(v){return '<option value="'+v+'"'+(+PROMO.pct===v?' selected':'')+'>-'+v+' %</option>'}).join("")+'</select>'+
+  '<div class="two"><div><label class="mu">Début</label><input id="pmd" type="date" value="'+esc(PROMO.debut||"")+'"></div><div><label class="mu">Fin</label><input id="pmf" type="date" value="'+esc(PROMO.fin||"")+'"></div></div>'+
+  '<p class="mu" id="pmx"></p><button id="pms">Enregistrer la promo</button><p class="mu" id="pmm"></p>'+
+  '<p class="mu">Limite : le prix le plus bas possible est 1 crédit pour une partie. Avec 1 crédit la page, -50 % revient à environ 1 crédit pour 2 pages. Pour descendre encore, baisse le prix des crédits dans tes packs.</p>';
+ function prev(){var pc=+$("pmp").value,ex=[1,2,3,4].map(function(n){return n+" p. : "+(page?Math.max(1,Math.round(page*n*(1-pc/100))):"?")+" cr. (au lieu de "+(page*n||"?")+")"});$("pmx").textContent=page?("Avec la promo : "+ex.join(" · ")):"Règle d'abord le prix par page de la correction (plus haut).";}
+ $("pmp").onchange=prev;prev();
+ $("pms").onclick=async function(){var o={actif:$("pmon").checked,pct:+$("pmp").value,debut:$("pmd").value,fin:$("pmf").value,titre:($("pmt").value||"").trim()||"Promo"};
+  if(o.actif&&o.debut&&o.fin&&o.debut>o.fin){$("pmm").textContent="La date de fin doit être après la date de début.";return}
+  $("pmm").textContent="…";var q=await sb.rpc("admin_config_set",{p_key:"promo",p_value:o});if(q.error){$("pmm").textContent="Erreur : "+q.error.message;return}
+  PROMO=o;var e=await pricesApply();$("pmm").textContent=e?("Promo enregistrée, mais les prix n'ont pas pu être mis à jour : "+e):(promoOn()?"Promo en cours ✓ Les clients voient les prix réduits à leur prochaine ouverture.":o.actif?"Promo enregistrée ✓ Elle commencera le "+o.debut+". Reviens ce jour-là sur cet écran et appuie encore sur « Enregistrer la promo » pour appliquer les prix réduits.":"Promo arrêtée ✓ Les prix normaux sont revenus.");};}
+/* pack étudiant avec interrupteur */
+function stuHtml(){var x=(PK||[]).filter(function(p){return /étudiant/i.test(p.nom||"")})[0],on=!!x,c=x?x.credits:50,m=x?x.montant:1000;
+ return '<div style="border:2px solid #14b8a6;border-radius:12px;padding:10px;margin:10px 0"><label class="chk" style="display:flex;gap:12px;align-items:center;justify-content:flex-start;text-align:left"><input type="checkbox" class="swt" id="stuon"'+(on?' checked':'')+'> <b>🎓 Pack Étudiant</b></label><div class="two"><div><label class="mu">Crédits</label><input id="stuc" type="number" inputmode="numeric" min="1" value="'+c+'"></div><div><label class="mu">Prix (FCFA)</label><input id="stum" type="number" inputmode="numeric" min="100" step="5" value="'+m+'"></div></div><p class="mu" id="stux"></p><p class="mu">Activé, il apparaît dans les packs et sera enregistré avec « Enregistrer les packs ».</p></div>';}
+function stuBind(){var on=$("stuon");if(!on)return;function txt(){var c=+$("stuc").value,m=+$("stum").value;$("stux").textContent=(c>0&&m>0)?("≈ "+Math.round(m/c*10)/10+" F le crédit · "+pkCan(c,"corr")):""}
+ function apply(){var i=PK.findIndex(function(p){return /étudiant/i.test(p.nom||"")});if(on.checked){var o={credits:+$("stuc").value||50,montant:+$("stum").value||1000,nom:"Pack Étudiant",svc:"corr"};if(i>=0)PK[i]=o;else{if(PK.length>=6){$("pkm").textContent="6 packs maximum : retire un pack avant d'activer le Pack Étudiant.";on.checked=false;return}PK.push(o);}}else if(i>=0)PK.splice(i,1);drawPk();}
+ on.onchange=apply;$("stuc").onchange=$("stum").onchange=function(){if(on.checked)apply();else txt()};txt();}
 var PK=[];
-var PKS=[["","Général (tous les services IA)"],["logo","Logo IA"],["voix","Voix off"],["fond","Fond / décor IA"],["text","Texte automatique"],["doc","Photo → liste de prix"],["retouche","Retouche photo"],["ocr","Extraire le texte"]],PKN={logo:["logo","logos"],voix:["voix off","voix off"],fond:["décor","décors"],text:["texte","textes"],doc:["lecture de liste","lectures de liste"],retouche:["retouche","retouches"],ocr:["lecture","lectures"]};
+var PKS=[["","Général (tous les services IA)"],["logo","Logo IA"],["voix","Voix off"],["fond","Fond / décor IA"],["text","Texte automatique"],["doc","Photo → liste de prix"],["retouche","Retouche photo"],["ocr","Extraire le texte"],["corr","Correction de documents"]],PKN={corr:["page corrigée","pages corrigées"],logo:["logo","logos"],voix:["voix off","voix off"],fond:["décor","décors"],text:["texte","textes"],doc:["lecture de liste","lectures de liste"],retouche:["retouche","retouches"],ocr:["lecture","lectures"]};
 function pkCan(c,svc){var px=(SVC&&SVC.prix)||{};function n(k){var p=+px[k]||0;if(!(p>0))return "";var q=Math.floor(c/p);return q+" "+(PKN[k]?PKN[k][q>1?1:0]:k);}
  if(svc){var t=n(svc);return t?("De quoi faire : "+t):"Ce service n'a pas encore de prix (ou est éteint)."}
  var L=["logo","voix","fond","text"].map(n).filter(Boolean);return L.length?("Par exemple : "+L.join(" · ")):"";}
@@ -251,12 +285,13 @@ function drawPk(){
  var GT='display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px;gap:8px;align-items:center';
  PK.forEach(function(x,i){h+='<div style="border:1px solid #ddd;border-radius:12px;padding:10px;margin:10px 0"><input class="pkn" data-i="'+i+'" type="text" maxlength="40" placeholder="Nom du pack (ex : Pack Logo)" value="'+esc(x.nom||"")+'"><select class="pks" data-i="'+i+'" style="margin-top:8px;width:100%">'+PKS.map(function(o){return '<option value="'+o[0]+'"'+((x.svc||"")===o[0]?' selected':'')+'>Mis en avant : '+esc(o[1])+'</option>'}).join("")+'</select><div style="'+GT+';margin:8px 0 0"><span class="mu">Crédits</span><span class="mu">Prix (FCFA)</span><span></span></div><div style="'+GT+'"><input class="pkc" data-i="'+i+'" type="number" inputmode="numeric" min="1" value="'+x.credits+'"><input class="pkm" data-i="'+i+'" type="number" inputmode="numeric" min="100" step="5" value="'+x.montant+'"><button class="sec" data-d="'+i+'" title="Retirer ce pack" style="padding:10px 0;font-size:18px">🗑</button></div><div class="mu" data-pu="'+i+'" style="margin:4px 0 0"></div></div>'});
  if(!PK.length)h+='<p class="mu">Aucun pack. Ajoute-en un ci-dessous.</p>';
+ h+=stuHtml();
  h+='<div style="display:flex;gap:8px;margin-top:8px"><button class="sec" id="pka" style="flex:1">+ Ajouter un pack</button><button class="sec" id="pkd" style="flex:1">Packs de lancement</button></div><button id="pks">Enregistrer les packs</button><p class="mu" id="pkm"></p>';
  b.innerHTML=h;
  function upd(){Array.prototype.forEach.call(b.querySelectorAll(".pkc"),function(e){var i=e.dataset.i,m=+b.querySelector('.pkm[data-i="'+i+'"]').value,c=+e.value,u=b.querySelector('[data-pu="'+i+'"]');var pc=(c>0&&m>0)?m/c:0;var can=c>0?pkCan(c,PK[i].svc):"";u.textContent=(pc?("≈ "+Math.round(pc*10)/10+" F par crédit"+(pc<25?" ⚠ Sous 25 F : la voix risque de ne plus être rentable.":"")):"")+(can?" · "+can:"");u.style.color=(pc&&pc<25)?"#f59e0b":""})}
  window.pkUpd=upd;
  function sync(){Array.prototype.forEach.call(b.querySelectorAll(".pkc"),function(e){PK[e.dataset.i].credits=+e.value});Array.prototype.forEach.call(b.querySelectorAll(".pkm"),function(e){PK[e.dataset.i].montant=+e.value});Array.prototype.forEach.call(b.querySelectorAll(".pkn"),function(e){PK[e.dataset.i].nom=e.value.trim()});Array.prototype.forEach.call(b.querySelectorAll(".pks"),function(e){PK[e.dataset.i].svc=e.value})}
- Array.prototype.forEach.call(b.querySelectorAll("input,select"),function(e){e.oninput=e.onchange=function(){sync();upd();if(window.svUpd)window.svUpd()}});upd();
+ Array.prototype.forEach.call(b.querySelectorAll("input,select"),function(e){e.oninput=e.onchange=function(){sync();upd();if(window.svUpd)window.svUpd()}});upd();stuBind();
  Array.prototype.forEach.call(b.querySelectorAll("button[data-d]"),function(x){x.onclick=function(){sync();PK.splice(+x.dataset.d,1);drawPk()}});
  $("pka").onclick=function(){sync();if(PK.length>=6){$("pkm").textContent="6 packs maximum.";return}PK.push({credits:10,montant:500,nom:"",svc:""});drawPk()};
  $("pkd").onclick=function(){PK=[{credits:10,montant:300,nom:"Pack Découverte",svc:""},{credits:25,montant:700,nom:"Pack Voix off",svc:"voix"},{credits:60,montant:1600,nom:"Pack Logo",svc:"logo"},{credits:150,montant:3750,nom:"Pack Pro",svc:""}];drawPk()};
@@ -389,7 +424,7 @@ async function fin(){var z=$("fi"),R=fRange(FP.k);
  $("fcsv").onclick=function(){var rows=[["date","montant_FCFA","credits","pack","moyen","reference","active"]];L.forEach(function(x){rows.push([x.at,x.montant,x.credits,x.pack,x.canal,x.ref||"",x.active?"oui":"non"])});
   rows.push([]);rows.push(["total",f.ca,f.credits_vendus,"","","",""]);var b=new Blob(["﻿"+rows.map(function(a){return a.map(function(v){return '"'+String(v==null?"":v).replace(/"/g,'""')+'"'}).join(";")}).join("\n")],{type:"text/csv"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="finances_"+f.debut+"_"+f.fin+".csv";a.click();};
  function bindP(){Array.prototype.forEach.call(z.querySelectorAll("[data-fp]"),function(b){b.onclick=function(){FP.k=b.dataset.fp;fin()}});var g=$("fgo");if(g)g.onclick=function(){FP.d0=$("fd0").value;FP.d1=$("fd1").value;if(FP.d0&&FP.d1&&FP.d0<=FP.d1)fin();};}}
-function tab(n){$("fi").classList.toggle("hid",n!=5);$("t5").classList.toggle("on",n==5);if(n==5)fin();$("body").classList.toggle("hid",n!=1);$("us").classList.toggle("hid",n!=3);$("cr").classList.toggle("hid",n!=2);$("pr").classList.toggle("hid",n!=4);$("t1").classList.toggle("on",n==1);$("t3").classList.toggle("on",n==3);$("t2").classList.toggle("on",n==2);$("t4").classList.toggle("on",n==4);if(n==2){codes();if(PK&&PK.length)codeChips();else packs();}if(n==4){svcPrix();packs();ntfAdmin();vsmp();}window.scrollTo(0,0)}
+function tab(n){$("fi").classList.toggle("hid",n!=5);$("t5").classList.toggle("on",n==5);if(n==5)fin();$("body").classList.toggle("hid",n!=1);$("us").classList.toggle("hid",n!=3);$("cr").classList.toggle("hid",n!=2);$("pr").classList.toggle("hid",n!=4);$("t1").classList.toggle("on",n==1);$("t3").classList.toggle("on",n==3);$("t2").classList.toggle("on",n==2);$("t4").classList.toggle("on",n==4);if(n==2){codes();if(PK&&PK.length)codeChips();else packs();}if(n==4){svcPrix();packs();promoAdmin();ntfAdmin();vsmp();}window.scrollTo(0,0)}
 $("t1").onclick=function(){tab(1)};$("t3").onclick=function(){tab(3)};$("t2").onclick=function(){tab(2)};$("t4").onclick=function(){tab(4)};$("t5").onclick=function(){tab(5)};tab(1);
 try{if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js");}catch(e){}
 </script></body></html>
